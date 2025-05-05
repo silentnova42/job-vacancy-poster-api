@@ -5,9 +5,9 @@ import (
 	"log"
 	"os"
 
+	pgstorage "github.com/silentnova42/job_vacancy_poster/db/pg-storage"
 	ginrouter "github.com/silentnova42/job_vacancy_poster/pkg/gin-router"
-	pgstorage "github.com/silentnova42/job_vacancy_poster/pkg/pg-storage"
-	"github.com/silentnova42/job_vacancy_poster/server"
+	"github.com/silentnova42/job_vacancy_poster/pkg/server"
 	"github.com/spf13/viper"
 )
 
@@ -25,7 +25,19 @@ func main() {
 		Dbname:   viper.GetString("db.dbname"),
 	}
 
-	db, err := pgstorage.NewPgDb(ctx, dbConfig.GetUrlConn(), 5)
+	log.Println(dbConfig.GetUrlConn())
+
+	confForDb, err := pgstorage.NewPgConf(dbConfig.GetUrlConn())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	db, err := pgstorage.Connact(ctx, confForDb, 5)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = db.RunMigration(dbConfig.GetUrlConn())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,7 +45,7 @@ func main() {
 	server := server.NewServer()
 	handler := ginrouter.NewHandler(db)
 
-	if err := server.Run(":"+viper.GetString("port"), handler.InitRouter()); err != nil {
+	if err = server.Run(":"+viper.GetString("port"), handler.InitRouter()); err != nil {
 		log.Fatal(err)
 	}
 }

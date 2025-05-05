@@ -17,7 +17,7 @@ func NewHandler(s Storage) *Handler {
 }
 
 func (h *Handler) InitRouter() *gin.Engine {
-	r := gin.New()
+	r := gin.Default()
 	r.GET("/", func(ctx *gin.Context) {
 		ctx.IndentedJSON(http.StatusOK, "Hello world!")
 	})
