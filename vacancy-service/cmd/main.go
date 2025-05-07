@@ -25,8 +25,6 @@ func main() {
 		Dbname:   viper.GetString("db.dbname"),
 	}
 
-	log.Println(dbConfig.GetUrlConn())
-
 	confForDb, err := pgstorage.NewPgConf(dbConfig.GetUrlConn())
 	if err != nil {
 		log.Fatal(err)

@@ -1,1 +1,1 @@
-DROP TABLE public.vacancy
+DROP TABLE public.vacancy;

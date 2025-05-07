@@ -2,73 +2,161 @@ package pgstorage
 
 import (
 	"context"
-	"time"
+	"errors"
+	"fmt"
+	"strings"
 
-	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/silentnova42/job_vacancy_poster/pkg/structs"
 )
 
-type Db struct {
-	client *pgxpool.Pool
-}
-
-func NewPgConf(url string) (*pgxpool.Config, error) {
-	config, err := pgxpool.ParseConfig(url)
+func (db *Db) GetAllVacancy(ctx context.Context) ([]*structs.VacancyGet, error) {
+	rows, err := db.client.Query(
+		ctx,
+		`SELECT id, owner_email, title, description_offer, salary_cents, responses
+		FROM public.vacancy`,
+	)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	config.MaxConns = 15
-	config.MinConns = 5
-	config.MaxConnIdleTime = 30 * time.Minute
+	vacancys := make([]*structs.VacancyGet, 0)
+	for rows.Next() {
+		var vacancy structs.VacancyGet
+		if err = rows.Scan(
+			&vacancy.Id,
+			&vacancy.OwnerEmail,
+			&vacancy.Title,
+			&vacancy.DescriptionOffer,
+			&vacancy.SalaryCents,
+			&vacancy.Responses,
+		); err != nil {
+			return nil, err
+		}
+		vacancys = append(vacancys, &vacancy)
+	}
 
-	return config, nil
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return vacancys, nil
 }
 
-func Connact(cxt context.Context, config *pgxpool.Config, attempts int) (*Db, error) {
+func (db *Db) GetVacancyById(ctx context.Context, id uint) (*structs.VacancyGet, error) {
+	var vacancy structs.VacancyGet
+	if err := db.client.QueryRow(
+		ctx,
+		`SELECT id, owner_email, title, description_offer, salary_cents, responses
+		FROM public.vacancy
+		WHERE id = $1`,
+		id,
+	).Scan(
+		&vacancy.Id,
+		&vacancy.OwnerEmail,
+		&vacancy.Title,
+		&vacancy.DescriptionOffer,
+		&vacancy.SalaryCents,
+		&vacancy.Responses,
+	); err != nil {
+		return nil, err
+	}
+	return &vacancy, nil
+}
+
+func (db *Db) InsertVacancy(ctx context.Context, vacancy *structs.VacancyCreate) error {
+	_, err := db.client.Exec(
+		ctx,
+		`INSERT INTO public.vacancy 
+		(owner_email, title, description_offer, salary_cents)
+		VALUES($1, $2, $3, $4)`,
+		vacancy.OwnerEmail,
+		vacancy.Title,
+		vacancy.DescriptionOffer,
+		vacancy.SalaryCents,
+	)
+	return err
+}
+
+func (db *Db) UpdateVacancyById(ctx context.Context, vacancy *structs.VacancyUpdate, id uint) error {
+	query, arg, err := buildQuery(vacancy, id)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.client.Exec(ctx, query, arg...)
+	return err
+}
+
+func buildQuery(vacancy *structs.VacancyUpdate, id uint) (string, []interface{}, error) {
 	var (
-		client  *pgxpool.Pool
-		backoff = time.Second
-		err     error
+		query = `UPDATE public.vacancy SET `
+		arg   = make([]interface{}, 0)
+		parts = make([]string, 0)
+
+		i = 1
 	)
 
-	for attempts > 0 {
-		if client, err = pgxpool.NewWithConfig(cxt, config); err != nil {
-			attempts--
-			time.Sleep(backoff)
-			backoff *= 2
-			continue
-		}
-
-		if err = client.Ping(cxt); err != nil {
-			time.Sleep(backoff)
-			backoff *= 2
-			attempts--
-			continue
-		}
-		break
+	if vacancy.Title != nil {
+		parts = append(parts, fmt.Sprintf("title = $%d", i))
+		arg = append(arg, *vacancy.Title)
+		i++
 	}
 
-	if attempts == 0 {
-		return nil, err
+	if vacancy.DescriptionOffer != nil {
+		parts = append(parts, fmt.Sprintf("description_offer = $%d", i))
+		arg = append(arg, *vacancy.DescriptionOffer)
+		i++
 	}
 
-	return &Db{
-		client: client,
-	}, nil
+	if vacancy.SalaryCents != nil {
+		parts = append(parts, fmt.Sprintf("salary_cents = $%d", i))
+		arg = append(arg, *vacancy.SalaryCents)
+		i++
+	}
+
+	if len(parts) == 0 {
+		return "", nil, errors.New("bad request")
+	}
+
+	query += strings.Join(parts, ", ")
+	query += fmt.Sprintf(" WHERE id = $%d", i)
+	arg = append(arg, id)
+	return query, arg, nil
 }
 
-func (db *Db) RunMigration(url string) error {
-	m, err := migrate.New("file:///root/migrate", url)
+func (db *Db) CloseVacancyById(ctx context.Context, id uint) error {
+	_, err := db.client.Exec(
+		ctx,
+		`DELETE FROM public.vacancy
+		WHERE id = $1`,
+		id,
+	)
+	return err
+}
+
+func (db *Db) AddResponse(ctx context.Context, id uint) error {
+	tx, err := db.client.Begin(ctx)
 	if err != nil {
 		return err
 	}
 
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+	func() {
+		if err != nil {
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	if _, err = tx.Exec(
+		ctx,
+		`UPDATE public.vacancy 
+		SET	responses = responses + 1
+		WHERE id = $1`,
+		id,
+	); err != nil {
 		return err
 	}
 
-	return nil
+	err = tx.Commit(ctx)
+	return err
 }

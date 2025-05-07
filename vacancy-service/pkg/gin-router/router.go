@@ -4,16 +4,23 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
-type Storage interface{}
+type (
+	Storage interface{}
+)
 
 type Handler struct {
-	client Storage
+	client   Storage
+	validate *validator.Validate
 }
 
-func NewHandler(s Storage) *Handler {
-	return &Handler{client: s}
+func NewHandler(db Storage) *Handler {
+	return &Handler{
+		client:   db,
+		validate: validator.New(),
+	}
 }
 
 func (h *Handler) InitRouter() *gin.Engine {
