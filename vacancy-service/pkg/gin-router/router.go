@@ -1,22 +1,28 @@
 package ginrouter
 
 import (
-	"net/http"
+	"context"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/silentnova42/job_vacancy_poster/pkg/structs"
 )
 
-type (
-	Storage interface{}
-)
+type VacancyStorage interface {
+	GetAllAvailableVacancy(ctx context.Context) ([]*structs.VacancyGet, error)
+	GetVacancyById(ctx context.Context, id uint) (*structs.VacancyGet, error)
+	AddVacancy(ctx context.Context, vacancy *structs.VacancyCreate) error
+	UpdateVacancyById(ctx context.Context, vacancy *structs.VacancyUpdate, id uint) error
+	AddResponseById(ctx context.Context, id uint) error
+	CloseVacancyById(ctx context.Context, id uint) error
+}
 
 type Handler struct {
-	client   Storage
+	client   VacancyStorage
 	validate *validator.Validate
 }
 
-func NewHandler(db Storage) *Handler {
+func NewHandler(db VacancyStorage) *Handler {
 	return &Handler{
 		client:   db,
 		validate: validator.New(),
@@ -25,8 +31,14 @@ func NewHandler(db Storage) *Handler {
 
 func (h *Handler) InitRouter() *gin.Engine {
 	r := gin.Default()
-	r.GET("/", func(ctx *gin.Context) {
-		ctx.IndentedJSON(http.StatusOK, "Hello world!")
-	})
+	vacancys := r.Group("/vacancies")
+	{
+		vacancys.GET("/", h.GetAllAvailableVacancy)
+		vacancys.GET("/:id", h.GetVacancyById)
+		vacancys.POST("/", h.AddVacancy)
+		vacancys.PATCH("/:id", h.UpdateVacancyById)
+		vacancys.PATCH("/apply/:id", h.AddResponseById)
+		vacancys.DELETE("/:id", h.CloseVacancyById)
+	}
 	return r
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/silentnova42/job_vacancy_poster/pkg/structs"
 )
 
-func (db *Db) GetAllVacancy(ctx context.Context) ([]*structs.VacancyGet, error) {
+func (db *Db) GetAllAvailableVacancy(ctx context.Context) ([]*structs.VacancyGet, error) {
 	rows, err := db.client.Query(
 		ctx,
 		`SELECT id, owner_email, title, description_offer, salary_cents, responses
@@ -64,7 +64,7 @@ func (db *Db) GetVacancyById(ctx context.Context, id uint) (*structs.VacancyGet,
 	return &vacancy, nil
 }
 
-func (db *Db) InsertVacancy(ctx context.Context, vacancy *structs.VacancyCreate) error {
+func (db *Db) AddVacancy(ctx context.Context, vacancy *structs.VacancyCreate) error {
 	_, err := db.client.Exec(
 		ctx,
 		`INSERT INTO public.vacancy 
@@ -125,17 +125,7 @@ func buildQuery(vacancy *structs.VacancyUpdate, id uint) (string, []interface{},
 	return query, arg, nil
 }
 
-func (db *Db) CloseVacancyById(ctx context.Context, id uint) error {
-	_, err := db.client.Exec(
-		ctx,
-		`DELETE FROM public.vacancy
-		WHERE id = $1`,
-		id,
-	)
-	return err
-}
-
-func (db *Db) AddResponse(ctx context.Context, id uint) error {
+func (db *Db) AddResponseById(ctx context.Context, id uint) error {
 	tx, err := db.client.Begin(ctx)
 	if err != nil {
 		return err
@@ -158,5 +148,15 @@ func (db *Db) AddResponse(ctx context.Context, id uint) error {
 	}
 
 	err = tx.Commit(ctx)
+	return err
+}
+
+func (db *Db) CloseVacancyById(ctx context.Context, id uint) error {
+	_, err := db.client.Exec(
+		ctx,
+		`DELETE FROM public.vacancy
+		WHERE id = $1`,
+		id,
+	)
 	return err
 }
