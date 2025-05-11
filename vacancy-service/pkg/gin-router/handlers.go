@@ -17,7 +17,7 @@ func (h *Handler) GetAllAvailableVacancy(ctx *gin.Context) {
 }
 
 func (h *Handler) GetVacancyById(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 0, 64)
+	id, err := strconv.ParseUint(ctx.Param("id"), 0, 32)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, err)
 		return
@@ -72,7 +72,7 @@ func (h *Handler) UpdateVacancyById(ctx *gin.Context) {
 		return
 	}
 
-	id, err := strconv.ParseUint(ctx.Param("id"), 0, 64)
+	id, err := strconv.ParseUint(ctx.Param("id"), 0, 32)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, err)
 		return
@@ -87,22 +87,31 @@ func (h *Handler) UpdateVacancyById(ctx *gin.Context) {
 }
 
 func (h *Handler) AddResponseById(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 0, 64)
-	if err != nil {
+	var (
+		response structs.ResponseCreate
+		err      error
+	)
+
+	if err = ctx.ShouldBindJSON(&response); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, err)
 		return
 	}
 
-	if err = h.client.AddResponseById(ctx.Request.Context(), uint(id)); err != nil {
+	if err = h.validate.Struct(response); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, err)
 		return
 	}
 
-	ctx.IndentedJSON(http.StatusOK, id)
+	if err = h.client.AddResponseById(ctx.Request.Context(), uint(response.VacancyId), response.Email); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, err)
+		return
+	}
+
+	ctx.IndentedJSON(http.StatusOK, response.Email)
 }
 
 func (h *Handler) CloseVacancyById(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 0, 64)
+	id, err := strconv.ParseUint(ctx.Param("id"), 0, 32)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, err)
 		return
@@ -114,4 +123,20 @@ func (h *Handler) CloseVacancyById(ctx *gin.Context) {
 	}
 
 	ctx.IndentedJSON(http.StatusOK, id)
+}
+
+func (h *Handler) GetResponsesByOwnerId(ctx *gin.Context) {
+	id, err := strconv.ParseUint(ctx.Param("id"), 0, 32)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, err)
+		return
+	}
+
+	responses, err := h.client.GetResponsesByOwnerId(ctx, uint(id))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, err)
+		return
+	}
+
+	ctx.IndentedJSON(http.StatusOK, responses)
 }
