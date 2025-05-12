@@ -1,0 +1,29 @@
+services:
+  app:
+    build: ./vacancy-service
+    container_name: app
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    environment:
+      - POSTGRES_PASSWORD=${VACANCIES_DB_PASSWORD}
+    depends_on:
+      - vacancy_db
+    networks:
+      - netservices
+  vacancy_db:
+    image: postgres:latest
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=${VACANCIES_DB_PASSWORD}
+    volumes:
+      - vacancy:/var/lib/postgresql/data
+    networks:
+      - netservices
+
+volumes:
+  vacancy: 
+
+networks:
+  netservices:
+    driver: bridge
