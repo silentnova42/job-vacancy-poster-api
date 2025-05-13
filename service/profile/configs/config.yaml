@@ -1,0 +1,7 @@
+port: 8080
+
+db:
+  username: "postgres"
+  host: "profile_db"
+  port: "5432"
+  dbname: "postgres"
