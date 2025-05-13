@@ -1,4 +1,4 @@
-CREATE TABLE public.vacancy
+CREATE TABLE public.vacancies
 (
     id SERIAL PRIMARY KEY,
     owner_email VARCHAR(255) NOT NULL UNIQUE, 

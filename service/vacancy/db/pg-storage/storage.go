@@ -13,7 +13,7 @@ func (db *Db) GetAllAvailableVacancy(ctx context.Context) ([]*structs.VacancyGet
 	rows, err := db.client.Query(
 		ctx,
 		`SELECT id, owner_email, title, description_offer, salary_cents, responses
-		FROM public.vacancy;`,
+		FROM public.vacancies;`,
 	)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (db *Db) GetVacancyById(ctx context.Context, id uint) (*structs.VacancyGet,
 	if err := db.client.QueryRow(
 		ctx,
 		`SELECT id, owner_email, title, description_offer, salary_cents, responses
-		FROM public.vacancy
+		FROM public.vacancies
 		WHERE id = $1;`,
 		id,
 	).Scan(
@@ -67,7 +67,7 @@ func (db *Db) GetVacancyById(ctx context.Context, id uint) (*structs.VacancyGet,
 func (db *Db) AddVacancy(ctx context.Context, vacancy *structs.VacancyCreate) error {
 	_, err := db.client.Exec(
 		ctx,
-		`INSERT INTO public.vacancy 
+		`INSERT INTO public.vacancies 
 		(owner_email, title, description_offer, salary_cents)
 		VALUES($1, $2, $3, $4);`,
 		vacancy.OwnerEmail,
@@ -90,7 +90,7 @@ func (db *Db) UpdateVacancyById(ctx context.Context, vacancy *structs.VacancyUpd
 
 func buildQuery(vacancy *structs.VacancyUpdate, id uint) (string, []interface{}, error) {
 	var (
-		query = `UPDATE public.vacancy SET `
+		query = `UPDATE public.vacancies SET `
 		arg   = make([]interface{}, 0)
 		parts = make([]string, 0)
 
@@ -139,7 +139,7 @@ func (db *Db) AddResponseById(ctx context.Context, id uint, email string) error 
 
 	if _, err = tx.Exec(
 		ctx,
-		`UPDATE public.vacancy 
+		`UPDATE public.vacancies 
 		SET	responses = responses + 1
 		WHERE id = $1;`,
 		id,
@@ -164,7 +164,7 @@ func (db *Db) AddResponseById(ctx context.Context, id uint, email string) error 
 func (db *Db) CloseVacancyById(ctx context.Context, id uint) error {
 	_, err := db.client.Exec(
 		ctx,
-		`DELETE FROM public.vacancy
+		`DELETE FROM public.vacancies
 		WHERE id = $1;`,
 		id,
 	)
@@ -179,7 +179,8 @@ func (db *Db) GetResponsesByOwnerId(ctx context.Context, id uint) ([]structs.Res
 			r.email, 
 			v.owner_email
 		FROM public.responses AS r
-		JOIN public.vacancy AS v ON r.vacancy_id = v.id
+		JOIN public.vacancies AS v 
+		ON r.vacancy_id = v.id
 		WHERE r.vacancy_id = $1;`,
 		id,
 	)
