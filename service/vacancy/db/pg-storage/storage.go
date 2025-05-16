@@ -12,7 +12,13 @@ import (
 func (db *Db) GetAllAvailableVacancy(ctx context.Context) ([]*structs.VacancyGet, error) {
 	rows, err := db.client.Query(
 		ctx,
-		`SELECT id, owner_email, title, description_offer, salary_cents, responses
+		`SELECT 
+			id
+			, owner_email
+			, title
+			, description_offer
+			, salary_cents
+			, responses
 		FROM public.vacancies;`,
 	)
 	if err != nil {
@@ -47,7 +53,13 @@ func (db *Db) GetVacancyById(ctx context.Context, id uint) (*structs.VacancyGet,
 	var vacancy structs.VacancyGet
 	if err := db.client.QueryRow(
 		ctx,
-		`SELECT id, owner_email, title, description_offer, salary_cents, responses
+		`SELECT 
+			id
+			, owner_email
+			, title
+			, description_offer
+			, salary_cents
+			, responses
 		FROM public.vacancies
 		WHERE id = $1;`,
 		id,
@@ -68,7 +80,10 @@ func (db *Db) AddVacancy(ctx context.Context, vacancy *structs.VacancyCreate) er
 	_, err := db.client.Exec(
 		ctx,
 		`INSERT INTO public.vacancies 
-		(owner_email, title, description_offer, salary_cents)
+			( owner_email
+			, title
+			, description_offer
+			, salary_cents )
 		VALUES($1, $2, $3, $4);`,
 		vacancy.OwnerEmail,
 		vacancy.Title,
@@ -93,26 +108,25 @@ func buildQuery(vacancy *structs.VacancyUpdate, id uint) (string, []interface{},
 		query = `UPDATE public.vacancies SET `
 		arg   = make([]interface{}, 0)
 		parts = make([]string, 0)
-
-		i = 1
+		index = 1
 	)
 
 	if vacancy.Title != nil {
-		parts = append(parts, fmt.Sprintf("title = $%d", i))
+		parts = append(parts, fmt.Sprintf("title = $%d", index))
 		arg = append(arg, *vacancy.Title)
-		i++
+		index++
 	}
 
 	if vacancy.DescriptionOffer != nil {
-		parts = append(parts, fmt.Sprintf("description_offer = $%d", i))
+		parts = append(parts, fmt.Sprintf("description_offer = $%d", index))
 		arg = append(arg, *vacancy.DescriptionOffer)
-		i++
+		index++
 	}
 
 	if vacancy.SalaryCents != nil {
-		parts = append(parts, fmt.Sprintf("salary_cents = $%d", i))
+		parts = append(parts, fmt.Sprintf("salary_cents = $%d", index))
 		arg = append(arg, *vacancy.SalaryCents)
-		i++
+		index++
 	}
 
 	if len(parts) == 0 {
@@ -120,7 +134,7 @@ func buildQuery(vacancy *structs.VacancyUpdate, id uint) (string, []interface{},
 	}
 
 	query += strings.Join(parts, ", ")
-	query += fmt.Sprintf(" WHERE id = $%d;", i)
+	query += fmt.Sprintf(" WHERE id = $%d;", index)
 	arg = append(arg, id)
 	return query, arg, nil
 }
@@ -150,7 +164,8 @@ func (db *Db) AddResponseById(ctx context.Context, id uint, email string) error 
 	if _, err = tx.Exec(
 		ctx,
 		`INSERT INTO public.responses 
-		(vacancy_id, email)
+			( vacancy_id
+			, email )
 		VALUES($1, $2);`,
 		id, email,
 	); err != nil {

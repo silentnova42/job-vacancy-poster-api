@@ -41,7 +41,7 @@ func (h *Handler) InitRouter() *gin.Engine {
 		vacancys.PATCH("/apply/", h.AddResponseById)
 		vacancys.DELETE("/:id", h.CloseVacancyById)
 	}
-	response := r.Group("/response")
+	response := r.Group("/responses")
 	{
 		response.GET("/:id", h.GetResponsesByOwnerId)
 	}
