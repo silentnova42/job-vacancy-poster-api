@@ -13,8 +13,9 @@ type VacancyStorage interface {
 	GetVacancyById(ctx context.Context, id uint) (*structs.VacancyGet, error)
 	AddVacancy(ctx context.Context, vacancy *structs.VacancyCreate) error
 	UpdateVacancyById(ctx context.Context, vacancy *structs.VacancyUpdate, id uint) error
-	AddResponseById(ctx context.Context, id uint) error
+	AddResponseById(ctx context.Context, id uint, email string) error
 	CloseVacancyById(ctx context.Context, id uint) error
+	GetResponsesByOwnerId(ctx context.Context, id uint) ([]structs.ResponseGet, error)
 }
 
 type Handler struct {
@@ -37,8 +38,12 @@ func (h *Handler) InitRouter() *gin.Engine {
 		vacancys.GET("/:id", h.GetVacancyById)
 		vacancys.POST("/", h.AddVacancy)
 		vacancys.PATCH("/:id", h.UpdateVacancyById)
-		vacancys.PATCH("/apply/:id", h.AddResponseById)
+		vacancys.PATCH("/apply/", h.AddResponseById)
 		vacancys.DELETE("/:id", h.CloseVacancyById)
+	}
+	response := r.Group("/response")
+	{
+		response.GET("/:id", h.GetResponsesByOwnerId)
 	}
 	return r
 }

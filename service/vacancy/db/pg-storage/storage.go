@@ -13,7 +13,7 @@ func (db *Db) GetAllAvailableVacancy(ctx context.Context) ([]*structs.VacancyGet
 	rows, err := db.client.Query(
 		ctx,
 		`SELECT id, owner_email, title, description_offer, salary_cents, responses
-		FROM public.vacancy`,
+		FROM public.vacancies;`,
 	)
 	if err != nil {
 		return nil, err
@@ -48,8 +48,8 @@ func (db *Db) GetVacancyById(ctx context.Context, id uint) (*structs.VacancyGet,
 	if err := db.client.QueryRow(
 		ctx,
 		`SELECT id, owner_email, title, description_offer, salary_cents, responses
-		FROM public.vacancy
-		WHERE id = $1`,
+		FROM public.vacancies
+		WHERE id = $1;`,
 		id,
 	).Scan(
 		&vacancy.Id,
@@ -67,9 +67,9 @@ func (db *Db) GetVacancyById(ctx context.Context, id uint) (*structs.VacancyGet,
 func (db *Db) AddVacancy(ctx context.Context, vacancy *structs.VacancyCreate) error {
 	_, err := db.client.Exec(
 		ctx,
-		`INSERT INTO public.vacancy 
+		`INSERT INTO public.vacancies 
 		(owner_email, title, description_offer, salary_cents)
-		VALUES($1, $2, $3, $4)`,
+		VALUES($1, $2, $3, $4);`,
 		vacancy.OwnerEmail,
 		vacancy.Title,
 		vacancy.DescriptionOffer,
@@ -90,7 +90,7 @@ func (db *Db) UpdateVacancyById(ctx context.Context, vacancy *structs.VacancyUpd
 
 func buildQuery(vacancy *structs.VacancyUpdate, id uint) (string, []interface{}, error) {
 	var (
-		query = `UPDATE public.vacancy SET `
+		query = `UPDATE public.vacancies SET `
 		arg   = make([]interface{}, 0)
 		parts = make([]string, 0)
 
@@ -120,12 +120,12 @@ func buildQuery(vacancy *structs.VacancyUpdate, id uint) (string, []interface{},
 	}
 
 	query += strings.Join(parts, ", ")
-	query += fmt.Sprintf(" WHERE id = $%d", i)
+	query += fmt.Sprintf(" WHERE id = $%d;", i)
 	arg = append(arg, id)
 	return query, arg, nil
 }
 
-func (db *Db) AddResponseById(ctx context.Context, id uint) error {
+func (db *Db) AddResponseById(ctx context.Context, id uint, email string) error {
 	tx, err := db.client.Begin(ctx)
 	if err != nil {
 		return err
@@ -139,10 +139,20 @@ func (db *Db) AddResponseById(ctx context.Context, id uint) error {
 
 	if _, err = tx.Exec(
 		ctx,
-		`UPDATE public.vacancy 
+		`UPDATE public.vacancies 
 		SET	responses = responses + 1
-		WHERE id = $1`,
+		WHERE id = $1;`,
 		id,
+	); err != nil {
+		return err
+	}
+
+	if _, err = tx.Exec(
+		ctx,
+		`INSERT INTO public.responses 
+		(vacancy_id, email)
+		VALUES($1, $2);`,
+		id, email,
 	); err != nil {
 		return err
 	}
@@ -154,9 +164,44 @@ func (db *Db) AddResponseById(ctx context.Context, id uint) error {
 func (db *Db) CloseVacancyById(ctx context.Context, id uint) error {
 	_, err := db.client.Exec(
 		ctx,
-		`DELETE FROM public.vacancy
-		WHERE id = $1`,
+		`DELETE FROM public.vacancies
+		WHERE id = $1;`,
 		id,
 	)
 	return err
+}
+
+func (db *Db) GetResponsesByOwnerId(ctx context.Context, id uint) ([]structs.ResponseGet, error) {
+	row, err := db.client.Query(
+		ctx,
+		`SELECT 
+			r.vacancy_id, 
+			r.email, 
+			v.owner_email
+		FROM public.responses AS r
+		JOIN public.vacancies AS v 
+		ON r.vacancy_id = v.id
+		WHERE r.vacancy_id = $1;`,
+		id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer row.Close()
+
+	responses := make([]structs.ResponseGet, 0)
+	for row.Next() {
+		var response structs.ResponseGet
+		if err = row.Scan(&response.VacancyId, &response.Email, &response.OwnerEmail); err != nil {
+			return nil, err
+		}
+
+		responses = append(responses, response)
+	}
+
+	if err = row.Err(); err != nil {
+		return nil, err
+	}
+
+	return responses, err
 }
