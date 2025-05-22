@@ -6,8 +6,8 @@ import (
 	"os"
 
 	pgstorage "github.com/silentnova42/job_vacancy_poster/db/pg-storage"
-	ginrouter "github.com/silentnova42/job_vacancy_poster/pkg/api"
-	"github.com/silentnova42/job_vacancy_poster/pkg/server"
+	ginrouter "github.com/silentnova42/job_vacancy_poster/pkg/api/gin"
+	"github.com/silentnova42/job_vacancy_poster/pkg/api/server"
 	"github.com/spf13/viper"
 )
 
