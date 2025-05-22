@@ -108,14 +108,14 @@ func (h *Handler) CloseVacancyById(ctx *gin.Context) {
 	ctx.IndentedJSON(http.StatusOK, id)
 }
 
-func (h *Handler) GetResponsesByOwnerId(ctx *gin.Context) {
+func (h *Handler) GetResponsesByVacancyId(ctx *gin.Context) {
 	id, err := strconv.ParseUint(ctx.Param("id"), 0, 32)
 	if err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 		return
 	}
 
-	responses, err := h.client.GetResponsesByOwnerId(ctx, uint(id))
+	responses, err := h.client.GetResponsesByVacancyId(ctx, uint(id))
 	if err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 		return

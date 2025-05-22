@@ -1,18 +1,16 @@
 package ginrouter
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/silentnova42/job_vacancy_poster/pkg/structs"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func (h *Handler) GetProfileByEmailAndPassword(ctx *gin.Context) {
 	var (
-		customer structs.CheckCustomer
+		customer structs.Credentials
 		err      error
 	)
 
@@ -27,42 +25,36 @@ func (h *Handler) GetProfileByEmailAndPassword(ctx *gin.Context) {
 		return
 	}
 
-	if getCustomer == nil {
-		abortWithErr(ctx, http.StatusBadRequest, errors.New("could not get the customer"))
-		return
-	}
-
-	if err = comperePasswordHash([]byte(getCustomer.Password), []byte(customer.Password)); err != nil {
-		abortWithErr(ctx, http.StatusBadRequest, err)
-		return
-	}
-
 	ctx.IndentedJSON(http.StatusOK, getCustomer)
 }
 
-func (h *Handler) AddProfile(ctx *gin.Context) {
-	var (
-		customer structs.CreateCustomer
-		err      error
-	)
-
-	if err = bindAndValdate(ctx, &customer, h.validate); err != nil {
-		abortWithErr(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	customer.Password, err = getPasswordHash(customer.Password)
+func (h *Handler) GetProfileByEmail(ctx *gin.Context) {
+	customer, err := h.client.GetCustomerByEmail(ctx.Request.Context(), ctx.Param("email"))
 	if err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 		return
 	}
 
-	if err = h.client.AddProfile(ctx.Request.Context(), customer); err != nil {
+	ctx.IndentedJSON(http.StatusOK, customer)
+}
+
+func (h *Handler) AddProfile(ctx *gin.Context) {
+	var (
+		newCustomer structs.CreateCustomer
+		err         error
+	)
+
+	if err = bindAndValdate(ctx, &newCustomer, h.validate); err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 		return
 	}
 
-	ctx.IndentedJSON(http.StatusOK, customer.Email)
+	if err = h.client.AddProfile(ctx.Request.Context(), newCustomer); err != nil {
+		abortWithErr(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	ctx.IndentedJSON(http.StatusCreated, newCustomer.Email)
 }
 
 func (h *Handler) UpdateProfile(ctx *gin.Context) {
@@ -76,18 +68,31 @@ func (h *Handler) UpdateProfile(ctx *gin.Context) {
 		return
 	}
 
-	getCustomer, err := h.client.GetProfileByEmailAndPassword(ctx, updateCustomer.Check)
-	if err != nil {
-		abortWithErr(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	if err = h.client.UpdateProfile(ctx.Request.Context(), updateCustomer, *getCustomer); err != nil {
+	if err = h.client.UpdateProfile(ctx.Request.Context(), updateCustomer); err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 		return
 	}
 
 	ctx.IndentedJSON(http.StatusOK, updateCustomer)
+}
+
+func (h *Handler) DeleteProfileByEmailAndPassword(ctx *gin.Context) {
+	var (
+		deleteCustomer structs.Credentials
+		err            error
+	)
+
+	if err = bindAndValdate(ctx, &deleteCustomer, h.validate); err != nil {
+		abortWithErr(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	if err = h.client.DeleteProfileByEmailAndPassword(ctx.Request.Context(), deleteCustomer); err != nil {
+		abortWithErr(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	ctx.IndentedJSON(http.StatusNoContent, deleteCustomer)
 }
 
 func bindAndValdate[T any](ctx *gin.Context, obj *T, validator *validator.Validate) error {
@@ -100,13 +105,4 @@ func bindAndValdate[T any](ctx *gin.Context, obj *T, validator *validator.Valida
 
 func abortWithErr(ctx *gin.Context, status int, err error) {
 	ctx.AbortWithStatusJSON(status, gin.H{"error": err.Error()})
-}
-
-func getPasswordHash(password string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
-	return string(hash), err
-}
-
-func comperePasswordHash(hash []byte, password []byte) error {
-	return bcrypt.CompareHashAndPassword(hash, password)
 }

@@ -186,7 +186,7 @@ func (db *Db) CloseVacancyById(ctx context.Context, id uint) error {
 	return err
 }
 
-func (db *Db) GetResponsesByOwnerId(ctx context.Context, id uint) ([]structs.ResponseGet, error) {
+func (db *Db) GetResponsesByVacancyId(ctx context.Context, id uint) ([]structs.ResponseGet, error) {
 	row, err := db.client.Query(
 		ctx,
 		`SELECT 
