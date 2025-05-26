@@ -1,7 +1,7 @@
-package structs
+package model
 
 type VacancyCreate struct {
-	OwnerEmail       string `json:"owner_email" validate:"required,email,max=255"`
+	OwnerEmail       string `json:"owner_email" validate:"required,email"`
 	Title            string `json:"title" validate:"required,max=255"`
 	DescriptionOffer string `json:"description_offer" validate:"required,min=10"`
 	SalaryCents      int    `json:"salary_cents" validate:"required"`

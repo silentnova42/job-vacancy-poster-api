@@ -45,6 +45,20 @@ services:
       - profile:/var/lib/postgresql/data
     networks:
       - netservices
+  
+  #authentication service:
+  authentication:
+    build: ./service/authentication
+    container_name: authentication
+    restart: always
+    ports:
+      - ${AUTHENTICATION_PORT}:${AUTHENTICATION_PORT}
+    environment:
+      - PORT=${AUTHENTICATION_PORT}
+      - REFRESH_TOKEN=${REFRESH_TOKEN}
+      - ACCESS_TOKEN=${ACCESS_TOKEN}
+    networks:
+      - netservices
 
 volumes:
   vacancy:
