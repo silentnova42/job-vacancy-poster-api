@@ -7,13 +7,13 @@ import (
 	"log"
 	"strings"
 
-	"github.com/silentnova42/job_vacancy_poster/pkg/structs"
+	"github.com/silentnova42/job_vacancy_poster/pkg/model"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (db *Db) GetProfileByEmailAndPassword(ctx context.Context, credentials structs.Credentials) (*structs.GetPrivateCustomer, error) {
+func (db *Db) GetProfileByEmailAndPassword(ctx context.Context, credentials model.Credentials) (*model.GetPrivateCustomer, error) {
 	var (
-		customer structs.GetPrivateCustomer
+		customer model.GetPrivateCustomer
 		err      error
 	)
 
@@ -47,8 +47,8 @@ func (db *Db) GetProfileByEmailAndPassword(ctx context.Context, credentials stru
 	return &customer, nil
 }
 
-func (db *Db) GetCustomerByEmail(ctx context.Context, email string) (*structs.GetPublicCustomer, error) {
-	var customer structs.GetPublicCustomer
+func (db *Db) GetCustomerByEmail(ctx context.Context, email string) (*model.GetPublicCustomer, error) {
+	var customer model.GetPublicCustomer
 
 	if err := db.client.QueryRow(
 		ctx,
@@ -74,7 +74,7 @@ func (db *Db) GetCustomerByEmail(ctx context.Context, email string) (*structs.Ge
 	return &customer, nil
 }
 
-func (db *Db) AddProfile(ctx context.Context, newCustomer structs.CreateCustomer) error {
+func (db *Db) AddProfile(ctx context.Context, newCustomer model.CreateCustomer) error {
 	hash, err := getPasswordHash(newCustomer.Password)
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func (db *Db) AddProfile(ctx context.Context, newCustomer structs.CreateCustomer
 	return err
 }
 
-func (db *Db) UpdateProfile(ctx context.Context, updateCustomer structs.UpdateCustomer) error {
+func (db *Db) UpdateProfile(ctx context.Context, updateCustomer model.UpdateCustomer) error {
 	getCustomer, err := db.GetProfileByEmailAndPassword(ctx, updateCustomer.Credentials)
 	if err != nil {
 		return err
@@ -113,7 +113,7 @@ func (db *Db) UpdateProfile(ctx context.Context, updateCustomer structs.UpdateCu
 	return err
 }
 
-func buildQuery(updateCustomer structs.UpdateCustomer, getCustomer structs.GetPrivateCustomer) (string, []interface{}, error) {
+func buildQuery(updateCustomer model.UpdateCustomer, getCustomer model.GetPrivateCustomer) (string, []interface{}, error) {
 	var (
 		query = "UPDATE public.profiles SET "
 		parts = make([]string, 0)
@@ -172,7 +172,7 @@ func buildQuery(updateCustomer structs.UpdateCustomer, getCustomer structs.GetPr
 	return query, args, nil
 }
 
-func (db *Db) DeleteProfileByEmailAndPassword(ctx context.Context, credentials structs.Credentials) error {
+func (db *Db) DeleteProfileByEmailAndPassword(ctx context.Context, credentials model.Credentials) error {
 	var (
 		passwordHash string
 		err          error

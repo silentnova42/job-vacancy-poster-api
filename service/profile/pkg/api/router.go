@@ -1,19 +1,19 @@
-package ginrouter
+package router
 
 import (
 	"context"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/silentnova42/job_vacancy_poster/pkg/structs"
+	"github.com/silentnova42/job_vacancy_poster/pkg/model"
 )
 
 type CustomerProfileStorage interface {
-	GetProfileByEmailAndPassword(ctx context.Context, checkCustomer structs.Credentials) (*structs.GetPrivateCustomer, error)
-	GetCustomerByEmail(ctx context.Context, email string) (*structs.GetPublicCustomer, error)
-	AddProfile(ctx context.Context, customer structs.CreateCustomer) error
-	UpdateProfile(ctx context.Context, updateCustomer structs.UpdateCustomer) error
-	DeleteProfileByEmailAndPassword(ctx context.Context, check structs.Credentials) error
+	GetProfileByEmailAndPassword(ctx context.Context, checkCustomer model.Credentials) (*model.GetPrivateCustomer, error)
+	GetCustomerByEmail(ctx context.Context, email string) (*model.GetPublicCustomer, error)
+	AddProfile(ctx context.Context, customer model.CreateCustomer) error
+	UpdateProfile(ctx context.Context, updateCustomer model.UpdateCustomer) error
+	DeleteProfileByEmailAndPassword(ctx context.Context, check model.Credentials) error
 }
 
 type Handler struct {

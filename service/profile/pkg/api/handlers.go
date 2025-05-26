@@ -1,16 +1,16 @@
-package ginrouter
+package router
 
 import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/silentnova42/job_vacancy_poster/pkg/structs"
+	"github.com/silentnova42/job_vacancy_poster/pkg/model"
 )
 
 func (h *Handler) GetProfileByEmailAndPassword(ctx *gin.Context) {
 	var (
-		customer structs.Credentials
+		customer model.Credentials
 		err      error
 	)
 
@@ -40,7 +40,7 @@ func (h *Handler) GetProfileByEmail(ctx *gin.Context) {
 
 func (h *Handler) AddProfile(ctx *gin.Context) {
 	var (
-		newCustomer structs.CreateCustomer
+		newCustomer model.CreateCustomer
 		err         error
 	)
 
@@ -59,7 +59,7 @@ func (h *Handler) AddProfile(ctx *gin.Context) {
 
 func (h *Handler) UpdateProfile(ctx *gin.Context) {
 	var (
-		updateCustomer structs.UpdateCustomer
+		updateCustomer model.UpdateCustomer
 		err            error
 	)
 
@@ -78,7 +78,7 @@ func (h *Handler) UpdateProfile(ctx *gin.Context) {
 
 func (h *Handler) DeleteProfileByEmailAndPassword(ctx *gin.Context) {
 	var (
-		deleteCustomer structs.Credentials
+		deleteCustomer model.Credentials
 		err            error
 	)
 

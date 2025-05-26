@@ -1,4 +1,4 @@
-package ginrouter
+package router
 
 import (
 	"net/http"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/silentnova42/job_vacancy_poster/pkg/structs"
+	"github.com/silentnova42/job_vacancy_poster/pkg/model"
 )
 
 func (h *Handler) GetAllAvailableVacancy(ctx *gin.Context) {
@@ -35,7 +35,7 @@ func (h *Handler) GetVacancyById(ctx *gin.Context) {
 
 func (h *Handler) AddVacancy(ctx *gin.Context) {
 	var (
-		vacancy structs.VacancyCreate
+		vacancy model.VacancyCreate
 		err     error
 	)
 
@@ -53,7 +53,7 @@ func (h *Handler) AddVacancy(ctx *gin.Context) {
 
 func (h *Handler) UpdateVacancyById(ctx *gin.Context) {
 	var (
-		newVacancy structs.VacancyUpdate
+		newVacancy model.VacancyUpdate
 		err        error
 	)
 
@@ -77,7 +77,7 @@ func (h *Handler) UpdateVacancyById(ctx *gin.Context) {
 
 func (h *Handler) AddResponseById(ctx *gin.Context) {
 	var (
-		response structs.ResponseCreate
+		response model.ResponseCreate
 		err      error
 	)
 

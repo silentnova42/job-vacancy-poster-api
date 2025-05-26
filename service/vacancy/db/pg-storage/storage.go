@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/silentnova42/job_vacancy_poster/pkg/structs"
+	"github.com/silentnova42/job_vacancy_poster/pkg/model"
 )
 
-func (db *Db) GetAllAvailableVacancy(ctx context.Context) ([]*structs.VacancyGet, error) {
+func (db *Db) GetAllAvailableVacancy(ctx context.Context) ([]*model.VacancyGet, error) {
 	rows, err := db.client.Query(
 		ctx,
 		`SELECT 
@@ -26,9 +26,9 @@ func (db *Db) GetAllAvailableVacancy(ctx context.Context) ([]*structs.VacancyGet
 	}
 	defer rows.Close()
 
-	vacancys := make([]*structs.VacancyGet, 0)
+	vacancys := make([]*model.VacancyGet, 0)
 	for rows.Next() {
-		var vacancy structs.VacancyGet
+		var vacancy model.VacancyGet
 		if err = rows.Scan(
 			&vacancy.Id,
 			&vacancy.OwnerEmail,
@@ -49,8 +49,8 @@ func (db *Db) GetAllAvailableVacancy(ctx context.Context) ([]*structs.VacancyGet
 	return vacancys, nil
 }
 
-func (db *Db) GetVacancyById(ctx context.Context, id uint) (*structs.VacancyGet, error) {
-	var vacancy structs.VacancyGet
+func (db *Db) GetVacancyById(ctx context.Context, id uint) (*model.VacancyGet, error) {
+	var vacancy model.VacancyGet
 	if err := db.client.QueryRow(
 		ctx,
 		`SELECT 
@@ -76,7 +76,7 @@ func (db *Db) GetVacancyById(ctx context.Context, id uint) (*structs.VacancyGet,
 	return &vacancy, nil
 }
 
-func (db *Db) AddVacancy(ctx context.Context, vacancy *structs.VacancyCreate) error {
+func (db *Db) AddVacancy(ctx context.Context, vacancy *model.VacancyCreate) error {
 	_, err := db.client.Exec(
 		ctx,
 		`INSERT INTO public.vacancies 
@@ -93,7 +93,7 @@ func (db *Db) AddVacancy(ctx context.Context, vacancy *structs.VacancyCreate) er
 	return err
 }
 
-func (db *Db) UpdateVacancyById(ctx context.Context, vacancy *structs.VacancyUpdate, id uint) error {
+func (db *Db) UpdateVacancyById(ctx context.Context, vacancy *model.VacancyUpdate, id uint) error {
 	query, arg, err := buildQuery(vacancy, id)
 	if err != nil {
 		return err
@@ -103,7 +103,7 @@ func (db *Db) UpdateVacancyById(ctx context.Context, vacancy *structs.VacancyUpd
 	return err
 }
 
-func buildQuery(vacancy *structs.VacancyUpdate, id uint) (string, []interface{}, error) {
+func buildQuery(vacancy *model.VacancyUpdate, id uint) (string, []interface{}, error) {
 	var (
 		query = `UPDATE public.vacancies SET `
 		arg   = make([]interface{}, 0)
@@ -186,7 +186,7 @@ func (db *Db) CloseVacancyById(ctx context.Context, id uint) error {
 	return err
 }
 
-func (db *Db) GetResponsesByVacancyId(ctx context.Context, id uint) ([]structs.ResponseGet, error) {
+func (db *Db) GetResponsesByVacancyId(ctx context.Context, id uint) ([]model.ResponseGet, error) {
 	row, err := db.client.Query(
 		ctx,
 		`SELECT 
@@ -204,9 +204,9 @@ func (db *Db) GetResponsesByVacancyId(ctx context.Context, id uint) ([]structs.R
 	}
 	defer row.Close()
 
-	responses := make([]structs.ResponseGet, 0)
+	responses := make([]model.ResponseGet, 0)
 	for row.Next() {
-		var response structs.ResponseGet
+		var response model.ResponseGet
 		if err = row.Scan(&response.VacancyId, &response.Email, &response.OwnerEmail); err != nil {
 			return nil, err
 		}

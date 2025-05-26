@@ -1,4 +1,4 @@
-package structs
+package model
 
 type ResponseGet struct {
 	VacancyId  uint   `json:"vacancy_id,omitempty"`

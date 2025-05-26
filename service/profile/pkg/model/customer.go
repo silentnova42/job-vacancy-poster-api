@@ -1,4 +1,4 @@
-package structs
+package model
 
 type CreateCustomer struct {
 	Email    string `json:"email" validate:"required,email"`

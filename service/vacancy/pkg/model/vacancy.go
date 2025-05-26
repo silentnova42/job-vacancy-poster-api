@@ -1,4 +1,4 @@
-package structs
+package model
 
 type VacancyCreate struct {
 	OwnerEmail       string `json:"owner_email" validate:"required,email"`
