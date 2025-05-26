@@ -2,51 +2,87 @@ package auth
 
 import (
 	"errors"
+	"log"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	customer "github.com/silentnova42/job_vacancy_poster/pkg"
+	"github.com/silentnova42/job_vacancy_poster/pkg/model"
 )
 
-type Auth struct {
-	refresh *string
-	access  *string
+const (
+	ExpForRefresh = 7 * 24 * time.Hour
+	ExpForAccess  = 15 * time.Minute
+)
+
+type AuthService struct {
+	refresh string
+	access  string
 }
 
-func (a *Auth) FindTokensFromEnv() error {
-	*a.refresh = os.Getenv("REFRESH_TOKEN")
-	*a.access = os.Getenv("ACCESS_TOKEN")
+func NewAuthService() (*AuthService, error) {
+	var a AuthService
 
-	if strings.TrimSpace(*a.refresh) == "" {
+	if err := a.FindTokensFromEnv(); err != nil {
+		return nil, err
+	}
+
+	return &a, nil
+}
+
+func (a *AuthService) SetAccessToken(token string) {
+	a.access = token
+}
+
+func (a *AuthService) SetRefreshToken(token string) {
+	a.refresh = token
+}
+
+func (a *AuthService) FindTokensFromEnv() error {
+	a.refresh = os.Getenv("REFRESH_TOKEN")
+	a.access = os.Getenv("ACCESS_TOKEN")
+
+	if strings.TrimSpace(a.refresh) == "" {
 		return errors.New("refresh token not found")
 	}
 
-	if strings.TrimSpace(*a.access) == "" {
+	if strings.TrimSpace(a.access) == "" {
 		return errors.New("access token not found")
 	}
 
 	return nil
 }
 
-func (a *Auth) GenerateAccessToken(customer customer.Customer, exp time.Duration) (string, error) {
-	return generateToken(customer, exp, *a.access)
+func (a *AuthService) GenerateAccessToken(customer *model.Customer) (string, error) {
+	log.Println(a.access)
+	if strings.TrimSpace(a.access) == "" {
+		return "", errors.New("we didn't get an access token")
+	}
+	return generateToken(customer, ExpForAccess, a.access)
 }
 
-func (a *Auth) GenerateRefreshToken(customer customer.Customer, exp time.Duration) (string, error) {
-	return generateToken(customer, exp, *a.refresh)
+func (a *AuthService) GenerateRefreshToken(customer *model.Customer) (string, error) {
+	log.Println(a.refresh)
+	if strings.TrimSpace(a.refresh) == "" {
+		return "", errors.New("we didn't get an refresh token")
+	}
+	return generateToken(customer, ExpForRefresh, a.refresh)
 }
 
-func (a *Auth) Secure(accessToken string) (*customer.Customer, error) {
+func (a *AuthService) Secure(accessToken string) (*model.Customer, error) {
 	token, err := jwt.Parse(accessToken, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("incorrect signature method")
 		}
-		return a.access, nil
+		return []byte(a.access), nil
 	})
 
-	if err != nil || !token.Valid {
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
 		return nil, errors.New("invalid token")
 	}
 
@@ -60,70 +96,49 @@ func (a *Auth) Secure(accessToken string) (*customer.Customer, error) {
 		return nil, errors.New("email in token not found")
 	}
 
-	password, ok := claims["password"].(string)
-	if !ok {
-		return nil, errors.New("password in token not found")
-	}
-
-	return &customer.Customer{
-		Email:    email,
-		Password: password,
+	return &model.Customer{
+		Email: email,
 	}, nil
 }
 
-func (a *Auth) Refresh(refreshToken string) (string, string, error) {
+func (a *AuthService) Refresh(refreshToken string) (*model.Customer, error) {
 	token, err := jwt.Parse(refreshToken, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("incorrect signature method")
 		}
 
-		return a.refresh, nil
+		return []byte(a.refresh), nil
 	})
 
-	if err != nil || !token.Valid {
-		return "", "", errors.New("invalid token")
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, errors.New("invalid token")
 	}
 
 	climas, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return "", "", errors.New("invalid token")
+		return nil, errors.New("impossible to cast token type")
 	}
 
 	email, ok := climas["email"].(string)
 	if !ok {
-		return "", "", errors.New("email not found")
+		return nil, errors.New("email not found")
 	}
 
-	password, ok := climas["password"].(string)
-	if !ok {
-		return "", "", errors.New("password not found")
-	}
-
-	customer := customer.Customer{
-		Email:    email,
-		Password: password,
-	}
-
-	refresh, err := generateToken(customer, 7*24*time.Hour, *a.refresh)
-	if err != nil {
-		return "", "", err
-	}
-
-	access, err := generateToken(customer, 15*time.Minute, *a.access)
-	if err != nil {
-		return "", "", err
-	}
-
-	return refresh, access, nil
+	return &model.Customer{
+		Email: email,
+	}, nil
 }
 
-func generateToken(customer customer.Customer, exp time.Duration, key string) (string, error) {
+func generateToken(customer *model.Customer, exp time.Duration, key string) (string, error) {
 	claims := jwt.MapClaims{
-		"email":    customer.Email,
-		"password": customer.Password,
-		"exp":      exp,
+		"email": customer.Email,
+		"exp":   exp,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(key)
+	return token.SignedString([]byte(key))
 }
