@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/silentnova42/job_vacancy_poster/pkg/model"
+	"github.com/silentnova42/job_vacancy_poster/service/auth/pkg/model"
 )
 
 const (

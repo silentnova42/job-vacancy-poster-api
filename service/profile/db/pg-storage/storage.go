@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/silentnova42/job_vacancy_poster/pkg/model"
+	"github.com/silentnova42/job_vacancy_poster/service/profile/pkg/model"
 	"golang.org/x/crypto/bcrypt"
 )
 

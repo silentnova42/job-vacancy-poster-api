@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/silentnova42/job_vacancy_poster/pkg/model"
+	"github.com/silentnova42/job_vacancy_poster/service/vacancy/pkg/model"
 )
 
 func (db *Db) GetAllAvailableVacancy(ctx context.Context) ([]*model.VacancyGet, error) {

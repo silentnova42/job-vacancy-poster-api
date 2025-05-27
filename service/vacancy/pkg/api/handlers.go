@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/silentnova42/job_vacancy_poster/pkg/model"
+	"github.com/silentnova42/job_vacancy_poster/service/vacancy/pkg/model"
 )
 
 func (h *Handler) GetAllAvailableVacancy(ctx *gin.Context) {

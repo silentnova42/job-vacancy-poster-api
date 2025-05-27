@@ -1,4 +1,4 @@
-module github.com/silentnova42/job_vacancy_poster
+module github.com/silentnova42/job_vacancy_poster/service/profile
 
 go 1.23.1
 
