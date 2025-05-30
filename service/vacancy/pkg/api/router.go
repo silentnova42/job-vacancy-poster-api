@@ -8,7 +8,7 @@ import (
 	"github.com/silentnova42/job_vacancy_poster/service/vacancy/pkg/model"
 )
 
-type VacancyStorage interface {
+type OfferStorage interface {
 	GetAllAvailableVacancy(ctx context.Context) ([]*model.VacancyGet, error)
 	GetVacancyById(ctx context.Context, id uint) (*model.VacancyGet, error)
 	AddVacancy(ctx context.Context, vacancy *model.VacancyCreate) error
@@ -19,11 +19,11 @@ type VacancyStorage interface {
 }
 
 type Handler struct {
-	client   VacancyStorage
+	client   OfferStorage
 	validate *validator.Validate
 }
 
-func NewHandler(db VacancyStorage) *Handler {
+func NewHandler(db OfferStorage) *Handler {
 	return &Handler{
 		client:   db,
 		validate: validator.New(),
@@ -32,18 +32,18 @@ func NewHandler(db VacancyStorage) *Handler {
 
 func (h *Handler) InitRouter() *gin.Engine {
 	r := gin.Default()
-	vacancys := r.Group("/vacancies")
-	{
-		vacancys.GET("/", h.GetAllAvailableVacancy)
-		vacancys.GET("/:id", h.GetVacancyById)
-		vacancys.POST("/", h.AddVacancy)
-		vacancys.PATCH("/:id", h.UpdateVacancyById)
-		vacancys.PATCH("/apply/", h.AddResponseById)
-		vacancys.DELETE("/:id", h.CloseVacancyById)
-	}
+
+	r.GET("/", h.GetAllAvailableVacancy)
+	r.GET("/:id", h.GetVacancyById)
+	r.POST("/", h.AddVacancy)
+	r.PATCH("/:id", h.UpdateVacancyById)
+	r.DELETE("/:id", h.CloseVacancyById)
+
 	response := r.Group("/responses")
 	{
+		response.PATCH("/apply/", h.AddResponseById)
 		response.GET("/:id", h.GetResponsesByVacancyId)
 	}
+
 	return r
 }

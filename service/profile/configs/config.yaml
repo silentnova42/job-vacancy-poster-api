@@ -1,5 +1,3 @@
-port: 8080
-
 db:
   username: "postgres"
   host: "profile_db"

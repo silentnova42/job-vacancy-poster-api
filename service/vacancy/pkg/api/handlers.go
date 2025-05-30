@@ -39,7 +39,7 @@ func (h *Handler) AddVacancy(ctx *gin.Context) {
 		err     error
 	)
 
-	if err = bindAndValdate(ctx, &vacancy, h.validate); err != nil {
+	if err = bindAndValidate(ctx, &vacancy, h.validate); err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 	}
 
@@ -57,7 +57,7 @@ func (h *Handler) UpdateVacancyById(ctx *gin.Context) {
 		err        error
 	)
 
-	if err = bindAndValdate(ctx, &newVacancy, h.validate); err != nil {
+	if err = bindAndValidate(ctx, &newVacancy, h.validate); err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 	}
 
@@ -81,7 +81,7 @@ func (h *Handler) AddResponseById(ctx *gin.Context) {
 		err      error
 	)
 
-	if err = bindAndValdate(ctx, &response, h.validate); err != nil {
+	if err = bindAndValidate(ctx, &response, h.validate); err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 	}
 
@@ -124,7 +124,7 @@ func (h *Handler) GetResponsesByVacancyId(ctx *gin.Context) {
 	ctx.IndentedJSON(http.StatusOK, responses)
 }
 
-func bindAndValdate[T any](ctx *gin.Context, obj *T, validator *validator.Validate) error {
+func bindAndValidate[T any](ctx *gin.Context, obj *T, validator *validator.Validate) error {
 	if err := ctx.ShouldBindJSON(obj); err != nil {
 		return err
 	}

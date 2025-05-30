@@ -27,15 +27,11 @@ func NewHandler(db CustomerProfileStorage) *Handler {
 
 func (h *Handler) InitRouter() *gin.Engine {
 	r := gin.Default()
-
-	profiles := r.Group("/profiles")
-	{
-		profiles.GET("/", h.GetProfileByEmailAndPassword)
-		profiles.GET("/:email", h.GetProfileByEmail)
-		profiles.POST("/", h.AddProfile)
-		profiles.PATCH("/", h.UpdateProfile)
-		profiles.DELETE("/", h.DeleteProfileByEmailAndPassword)
-	}
+	r.GET("/", h.GetProfileByEmailAndPassword)
+	r.GET("/:email", h.GetProfileByEmail)
+	r.POST("/", h.AddProfile)
+	r.PATCH("/", h.UpdateProfile)
+	r.DELETE("/", h.DeleteProfileByEmailAndPassword)
 
 	return r
 }

@@ -9,6 +9,10 @@ type Server struct {
 	httpServer *http.Server
 }
 
+func NewServer() *Server {
+	return &Server{}
+}
+
 func (s *Server) Run(addr string, handler http.Handler) error {
 	s.httpServer = &http.Server{
 		Addr:              addr,
