@@ -10,11 +10,11 @@ import (
 
 func (h *Handler) GetProfileByEmailAndPassword(ctx *gin.Context) {
 	var (
-		customer model.Credentials
+		customer = &model.Credentials{}
 		err      error
 	)
 
-	if err = bindAndValdate(ctx, &customer, h.validate); err != nil {
+	if err = bindAndValdate(ctx, customer, h.validate); err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 		return
 	}
@@ -40,11 +40,11 @@ func (h *Handler) GetProfileByEmail(ctx *gin.Context) {
 
 func (h *Handler) AddProfile(ctx *gin.Context) {
 	var (
-		newCustomer model.CreateCustomer
+		newCustomer = &model.CreateCustomer{}
 		err         error
 	)
 
-	if err = bindAndValdate(ctx, &newCustomer, h.validate); err != nil {
+	if err = bindAndValdate(ctx, newCustomer, h.validate); err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 		return
 	}
@@ -59,11 +59,11 @@ func (h *Handler) AddProfile(ctx *gin.Context) {
 
 func (h *Handler) UpdateProfile(ctx *gin.Context) {
 	var (
-		updateCustomer model.UpdateCustomer
+		updateCustomer = &model.UpdateCustomer{}
 		err            error
 	)
 
-	if err = bindAndValdate(ctx, &updateCustomer, h.validate); err != nil {
+	if err = bindAndValdate(ctx, updateCustomer, h.validate); err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 		return
 	}
@@ -78,11 +78,11 @@ func (h *Handler) UpdateProfile(ctx *gin.Context) {
 
 func (h *Handler) DeleteProfileByEmailAndPassword(ctx *gin.Context) {
 	var (
-		deleteCustomer model.Credentials
+		deleteCustomer = &model.Credentials{}
 		err            error
 	)
 
-	if err = bindAndValdate(ctx, &deleteCustomer, h.validate); err != nil {
+	if err = bindAndValdate(ctx, deleteCustomer, h.validate); err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 		return
 	}

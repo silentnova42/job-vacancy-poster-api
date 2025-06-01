@@ -9,11 +9,11 @@ import (
 )
 
 type CustomerProfileStorage interface {
-	GetProfileByEmailAndPassword(ctx context.Context, checkCustomer model.Credentials) (*model.GetPrivateCustomer, error)
+	GetProfileByEmailAndPassword(ctx context.Context, checkCustomer *model.Credentials) (*model.GetPrivateCustomer, error)
 	GetCustomerByEmail(ctx context.Context, email string) (*model.GetPublicCustomer, error)
-	AddProfile(ctx context.Context, customer model.CreateCustomer) error
-	UpdateProfile(ctx context.Context, updateCustomer model.UpdateCustomer) error
-	DeleteProfileByEmailAndPassword(ctx context.Context, check model.Credentials) error
+	AddProfile(ctx context.Context, customer *model.CreateCustomer) error
+	UpdateProfile(ctx context.Context, updateCustomer *model.UpdateCustomer) error
+	DeleteProfileByEmailAndPassword(ctx context.Context, check *model.Credentials) error
 }
 
 type Handler struct {
@@ -27,9 +27,10 @@ func NewHandler(db CustomerProfileStorage) *Handler {
 
 func (h *Handler) InitRouter() *gin.Engine {
 	r := gin.Default()
-	r.GET("/", h.GetProfileByEmailAndPassword)
+
 	r.GET("/:email", h.GetProfileByEmail)
-	r.POST("/", h.AddProfile)
+	r.POST("/", h.GetProfileByEmailAndPassword)
+	r.POST("/reg/", h.AddProfile)
 	r.PATCH("/", h.UpdateProfile)
 	r.DELETE("/", h.DeleteProfileByEmailAndPassword)
 

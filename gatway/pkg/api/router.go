@@ -14,7 +14,7 @@ type Handler struct {
 	proxy []ReverseProxy
 }
 
-func NewHandler(p ...ReverseProxy) (*Handler, error) {
+func NewHandler(p []ReverseProxy) (*Handler, error) {
 	if len(p) == 0 {
 		return nil, errors.New("proxy not found")
 	}

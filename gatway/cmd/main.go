@@ -6,22 +6,24 @@ import (
 
 	config "github.com/silentnova42/job_vacancy_poster/service/gatway/configs"
 	router "github.com/silentnova42/job_vacancy_poster/service/gatway/pkg/api"
+	"github.com/silentnova42/job_vacancy_poster/service/gatway/pkg/proxy"
 	"github.com/silentnova42/job_vacancy_poster/service/gatway/pkg/server"
 )
 
 func main() {
-	if err := config.InitConfig(); err != nil {
-		log.Fatal(err)
-	}
-
 	server := server.NewServer()
 
-	proxy, err := config.InitProxy()
+	proxyConfig, err := config.InitProxyConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	handler, err := router.NewHandler(proxy...)
+	proxies, err := proxy.NewProxyManager().InitProxy(proxyConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	handler, err := router.NewHandler(proxies)
 	if err != nil {
 		log.Fatal(err)
 	}

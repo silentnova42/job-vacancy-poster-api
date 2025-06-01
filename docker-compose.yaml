@@ -75,6 +75,7 @@ services:
       - REFRESH_TOKEN=${REFRESH_TOKEN}
       - ACCESS_TOKEN=${ACCESS_TOKEN}
       - PORT=${AUTHENTICATION_PORT}
+      - PROFILE_URL=${PROFILE_URL}
     networks:
       - netservices
 

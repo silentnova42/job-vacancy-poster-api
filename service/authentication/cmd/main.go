@@ -17,7 +17,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	handler, err := router.NewHandler(authService, auth.ExpForRefresh)
+	urlProfile := os.Getenv("PROFILE_URL")
+
+	handler, err := router.NewHandler(authService, auth.ExpForRefresh, urlProfile)
 	if err != nil {
 		log.Fatal(err)
 	}

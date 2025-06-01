@@ -11,7 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (db *Db) GetProfileByEmailAndPassword(ctx context.Context, credentials model.Credentials) (*model.GetPrivateCustomer, error) {
+func (db *Db) GetProfileByEmailAndPassword(ctx context.Context, credentials *model.Credentials) (*model.GetPrivateCustomer, error) {
 	var (
 		customer model.GetPrivateCustomer
 		err      error
@@ -74,7 +74,7 @@ func (db *Db) GetCustomerByEmail(ctx context.Context, email string) (*model.GetP
 	return &customer, nil
 }
 
-func (db *Db) AddProfile(ctx context.Context, newCustomer model.CreateCustomer) error {
+func (db *Db) AddProfile(ctx context.Context, newCustomer *model.CreateCustomer) error {
 	hash, err := getPasswordHash(newCustomer.Password)
 	if err != nil {
 		return err
@@ -98,13 +98,13 @@ func (db *Db) AddProfile(ctx context.Context, newCustomer model.CreateCustomer) 
 	return err
 }
 
-func (db *Db) UpdateProfile(ctx context.Context, updateCustomer model.UpdateCustomer) error {
-	getCustomer, err := db.GetProfileByEmailAndPassword(ctx, updateCustomer.Credentials)
+func (db *Db) UpdateProfile(ctx context.Context, updateCustomer *model.UpdateCustomer) error {
+	getCustomer, err := db.GetProfileByEmailAndPassword(ctx, &updateCustomer.Credentials)
 	if err != nil {
 		return err
 	}
 
-	query, args, err := buildQuery(updateCustomer, *getCustomer)
+	query, args, err := buildQuery(updateCustomer, getCustomer)
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (db *Db) UpdateProfile(ctx context.Context, updateCustomer model.UpdateCust
 	return err
 }
 
-func buildQuery(updateCustomer model.UpdateCustomer, getCustomer model.GetPrivateCustomer) (string, []interface{}, error) {
+func buildQuery(updateCustomer *model.UpdateCustomer, getCustomer *model.GetPrivateCustomer) (string, []interface{}, error) {
 	var (
 		query = "UPDATE public.profiles SET "
 		parts = make([]string, 0)
@@ -172,7 +172,7 @@ func buildQuery(updateCustomer model.UpdateCustomer, getCustomer model.GetPrivat
 	return query, args, nil
 }
 
-func (db *Db) DeleteProfileByEmailAndPassword(ctx context.Context, credentials model.Credentials) error {
+func (db *Db) DeleteProfileByEmailAndPassword(ctx context.Context, credentials *model.Credentials) error {
 	var (
 		passwordHash string
 		err          error
