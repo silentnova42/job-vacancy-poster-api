@@ -90,7 +90,7 @@ func (h *Handler) Refresh(ctx *gin.Context) {
 		return
 	}
 
-	tokens, err := h.auth.Refresh(token)
+	newRefreshAndAccessTokens, err := h.auth.Refresh(token)
 	if err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 		return
@@ -98,7 +98,7 @@ func (h *Handler) Refresh(ctx *gin.Context) {
 
 	ctx.SetCookie(
 		"refresh_token",
-		tokens.RefreshToken,
+		newRefreshAndAccessTokens.RefreshToken,
 		int(h.expRefresh),
 		"/",
 		"",
@@ -107,7 +107,7 @@ func (h *Handler) Refresh(ctx *gin.Context) {
 	)
 
 	ctx.IndentedJSON(http.StatusOK, gin.H{
-		"access_token:": tokens.AccessToken,
+		"access_token:": newRefreshAndAccessTokens.AccessToken,
 	})
 }
 

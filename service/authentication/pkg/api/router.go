@@ -1,8 +1,6 @@
 package router
 
 import (
-	"time"
-
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/silentnova42/job_vacancy_poster/service/auth/pkg/model"
@@ -17,11 +15,11 @@ type Authorization interface {
 type Handler struct {
 	auth           Authorization
 	validate       *validator.Validate
-	expRefresh     time.Duration
+	expRefresh     int64
 	profileService string
 }
 
-func NewHandler(auth Authorization, expRefresh time.Duration, profileService string) (*Handler, error) {
+func NewHandler(auth Authorization, expRefresh int64, profileService string) (*Handler, error) {
 	return &Handler{
 		auth:           auth,
 		validate:       validator.New(),

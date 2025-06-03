@@ -13,9 +13,9 @@ import (
 	"github.com/silentnova42/job_vacancy_poster/service/auth/pkg/model"
 )
 
-const (
-	ExpForRefresh = 7 * 24 * time.Hour
-	ExpForAccess  = 15 * time.Minute
+var (
+	ExpForRefresh = time.Now().Add(7 * 24 * time.Hour).Unix()
+	ExpForAccess  = time.Now().Add(15 * time.Minute).Unix()
 )
 
 type AuthService struct {
@@ -151,13 +151,14 @@ func cast(climas jwt.MapClaims, key string) (string, error) {
 	return fmt.Sprint(value), nil
 }
 
-func generateToken(customer *model.GetCustomer, exp time.Duration, key string) (string, error) {
+func generateToken(customer *model.GetCustomer, exp int64, key string) (string, error) {
 	claims := jwt.MapClaims{
 		"id":        customer.Id,
 		"email":     customer.Email,
 		"name":      customer.Name,
 		"last_name": customer.LastName,
 		"exp":       exp,
+		"iat":       time.Now().Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

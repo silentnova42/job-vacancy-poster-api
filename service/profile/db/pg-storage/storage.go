@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/silentnova42/job_vacancy_poster/service/profile/pkg/model"
@@ -148,9 +147,6 @@ func buildQuery(updateCustomer *model.UpdateCustomer, getCustomer *model.GetPriv
 		args = append(args, updateCustomer.Resume)
 		index++
 	}
-
-	log.Println(*updateCustomer.Password)
-	log.Println(getCustomer.Password)
 
 	if updateCustomer.Password != nil && *updateCustomer.Password != updateCustomer.Credentials.Password {
 		parts = append(parts, fmt.Sprintf("password = $%v", index))

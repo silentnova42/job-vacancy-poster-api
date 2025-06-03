@@ -25,6 +25,7 @@ services:
     environment:
       - POSTGRES_PASSWORD=${VACANCY_DB_PASSWORD}
       - PORT=${VACANCY_PORT}
+      - ACCESS_TOKEN=${ACCESS_TOKEN}
     depends_on:
       - vacancy_db
     networks:
