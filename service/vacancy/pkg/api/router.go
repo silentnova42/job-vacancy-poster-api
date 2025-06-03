@@ -10,12 +10,13 @@ import (
 
 type OfferStorage interface {
 	GetAllAvailableVacancy(ctx context.Context) ([]*model.VacancyGet, error)
-	GetVacancyById(ctx context.Context, id uint) (*model.VacancyGet, error)
-	AddVacancy(ctx context.Context, vacancy *model.VacancyCreate) error
-	UpdateVacancyById(ctx context.Context, vacancy *model.VacancyUpdate, id uint) error
-	AddResponseById(ctx context.Context, id uint, email string) error
-	CloseVacancyById(ctx context.Context, id uint) error
+	GetVacancyById(ctx context.Context, vacancyId uint) (*model.VacancyGetWithResponses, error)
+	AddVacancy(ctx context.Context, vacancy *model.VacancyCreate, email string) error
+	UpdateVacancyByIdAndEmail(ctx context.Context, vacancy *model.VacancyUpdate, vacancyId uint, email string) error
+	CloseVacancyByIdAndEmail(ctx context.Context, id uint, email string) error
 	GetResponsesByVacancyId(ctx context.Context, id uint) ([]model.ResponseGet, error)
+	AddResponseByIdAndEmail(ctx context.Context, id uint, email string) error
+	DeleteResponseByIdAndEmail(ctx context.Context, vacancyId uint, email string) error
 }
 
 type Handler struct {
@@ -36,13 +37,14 @@ func (h *Handler) InitRouter() *gin.Engine {
 	r.GET("/", h.GetAllAvailableVacancy)
 	r.GET("/:id", h.GetVacancyById)
 	r.POST("/", h.AddVacancy)
-	r.PATCH("/:id", h.UpdateVacancyById)
-	r.DELETE("/:id", h.CloseVacancyById)
+	r.PATCH("/:id", h.UpdateVacancyByIdAndEmail)
+	r.DELETE("/:id", h.CloseVacancyByIdAndEmail)
 
-	response := r.Group("/responses")
+	responses := r.Group("/responses")
 	{
-		response.PATCH("/apply/", h.AddResponseById)
-		response.GET("/:id", h.GetResponsesByVacancyId)
+		responses.GET("/:id", h.GetResponsesByVacancyId)
+		responses.PATCH("/apply/:id", h.AddResponseByIdAndEmail)
+		responses.DELETE("/disapply/:id", h.DeleteResponseByIdAndEmail)
 	}
 
 	return r
