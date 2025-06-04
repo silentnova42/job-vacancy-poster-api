@@ -31,6 +31,7 @@ func NewHandler(auth Authorization, expRefresh int64, profileService string) (*H
 func (h *Handler) InitRouter() *gin.Engine {
 	r := gin.Default()
 	r.POST("/login", h.Login)
+	r.POST("/logout", h.Logout)
 	r.POST("/refresh", h.Refresh)
 	return r
 }

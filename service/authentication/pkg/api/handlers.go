@@ -111,6 +111,20 @@ func (h *Handler) Refresh(ctx *gin.Context) {
 	})
 }
 
+func (h *Handler) Logout(ctx *gin.Context) {
+	ctx.SetCookie(
+		"refresh_token",
+		"",
+		-1,
+		"/",
+		"",
+		true,
+		true,
+	)
+
+	ctx.IndentedJSON(http.StatusOK, "logout success")
+}
+
 func bindAndValidateCustomer(ctx *gin.Context, obj interface{}, v *validator.Validate) error {
 	var err error
 	if err = ctx.ShouldBindJSON(obj); err != nil {
