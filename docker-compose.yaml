@@ -52,6 +52,7 @@ services:
     environment:
       - POSTGRES_PSASWORD=${PROFILE_DB_PASSWORD}
       - PORT=${PROFILE_PORT}
+      - ACCESS_TOKEN=${ACCESS_TOKEN}
     networks:
       - netservices
   profile_db:

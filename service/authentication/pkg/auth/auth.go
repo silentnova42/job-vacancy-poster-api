@@ -3,7 +3,6 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -57,7 +56,6 @@ func (a *AuthService) FindTokensFromEnv() error {
 }
 
 func (a *AuthService) GenerateAccessToken(customer *model.GetCustomer) (string, error) {
-	log.Println(a.accessKey)
 	if strings.TrimSpace(a.accessKey) == "" {
 		return "", errors.New("we didn't get an access token")
 	}
@@ -65,7 +63,6 @@ func (a *AuthService) GenerateAccessToken(customer *model.GetCustomer) (string, 
 }
 
 func (a *AuthService) GenerateRefreshToken(customer *model.GetCustomer) (string, error) {
-	log.Println(a.refreshKey)
 	if strings.TrimSpace(a.refreshKey) == "" {
 		return "", errors.New("we didn't get an refresh token")
 	}

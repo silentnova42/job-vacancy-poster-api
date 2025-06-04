@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -56,7 +55,6 @@ func (db *Db) GetVacancyById(ctx context.Context, vacancyId uint) (*model.Vacanc
 	if err != nil {
 		return nil, err
 	}
-	log.Println("count:", count)
 	vacancy.Responses = count
 
 	if err := db.client.QueryRow(

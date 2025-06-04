@@ -2,7 +2,6 @@ package router
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -46,7 +45,7 @@ func (h *Handler) AddVacancy(ctx *gin.Context) {
 		err     error
 	)
 
-	email, err := CheckAccessTokenAndGetEmailFromThere(ctx)
+	email, err := h.CheckAccessTokenAndGetEmailFromThere(ctx)
 	if err != nil {
 		abortWithErr(ctx, http.StatusUnauthorized, err)
 		return
@@ -70,7 +69,7 @@ func (h *Handler) UpdateVacancyByIdAndEmail(ctx *gin.Context) {
 		err        error
 	)
 
-	email, err := CheckAccessTokenAndGetEmailFromThere(ctx)
+	email, err := h.CheckAccessTokenAndGetEmailFromThere(ctx)
 	if err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 		return
@@ -101,7 +100,7 @@ func (h *Handler) CloseVacancyByIdAndEmail(ctx *gin.Context) {
 		return
 	}
 
-	email, err := CheckAccessTokenAndGetEmailFromThere(ctx)
+	email, err := h.CheckAccessTokenAndGetEmailFromThere(ctx)
 	if err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 		return
@@ -138,7 +137,7 @@ func (h *Handler) AddResponseByIdAndEmail(ctx *gin.Context) {
 		return
 	}
 
-	email, err := CheckAccessTokenAndGetEmailFromThere(ctx)
+	email, err := h.CheckAccessTokenAndGetEmailFromThere(ctx)
 	if err != nil {
 		abortWithErr(ctx, http.StatusUnauthorized, err)
 		return
@@ -159,7 +158,7 @@ func (h *Handler) DeleteResponseByIdAndEmail(ctx *gin.Context) {
 		return
 	}
 
-	email, err := CheckAccessTokenAndGetEmailFromThere(ctx)
+	email, err := h.CheckAccessTokenAndGetEmailFromThere(ctx)
 	if err != nil {
 		abortWithErr(ctx, http.StatusUnauthorized, err)
 		return
@@ -173,7 +172,7 @@ func (h *Handler) DeleteResponseByIdAndEmail(ctx *gin.Context) {
 	ctx.IndentedJSON(http.StatusNoContent, id)
 }
 
-func CheckAccessTokenAndGetEmailFromThere(ctx *gin.Context) (string, error) {
+func (h *Handler) CheckAccessTokenAndGetEmailFromThere(ctx *gin.Context) (string, error) {
 	authParts := strings.Split(ctx.GetHeader("Authorization"), " ")
 
 	if len(authParts) < 2 || authParts[0] != "Bearer" {
@@ -181,7 +180,6 @@ func CheckAccessTokenAndGetEmailFromThere(ctx *gin.Context) (string, error) {
 	}
 
 	accessHash := strings.TrimSpace(authParts[1])
-	log.Println(accessHash)
 	accessToken, err := jwt.Parse(accessHash, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("signature error")
