@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/silentnova42/job_vacancy_poster/pkg/model"
+	"github.com/jackc/pgx/v5"
+	"github.com/silentnova42/job_vacancy_poster/service/vacancy/pkg/model"
 )
 
 func (db *Db) GetAllAvailableVacancy(ctx context.Context) ([]*model.VacancyGet, error) {
@@ -18,7 +19,6 @@ func (db *Db) GetAllAvailableVacancy(ctx context.Context) ([]*model.VacancyGet, 
 			, title
 			, description_offer
 			, salary_cents
-			, responses
 		FROM public.vacancies;`,
 	)
 	if err != nil {
@@ -35,7 +35,6 @@ func (db *Db) GetAllAvailableVacancy(ctx context.Context) ([]*model.VacancyGet, 
 			&vacancy.Title,
 			&vacancy.DescriptionOffer,
 			&vacancy.SalaryCents,
-			&vacancy.Responses,
 		); err != nil {
 			return nil, err
 		}
@@ -49,8 +48,15 @@ func (db *Db) GetAllAvailableVacancy(ctx context.Context) ([]*model.VacancyGet, 
 	return vacancys, nil
 }
 
-func (db *Db) GetVacancyById(ctx context.Context, id uint) (*model.VacancyGet, error) {
-	var vacancy model.VacancyGet
+func (db *Db) GetVacancyById(ctx context.Context, vacancyId uint) (*model.VacancyGetWithResponses, error) {
+	var vacancy model.VacancyGetWithResponses
+
+	count, err := db.GetCountResponsesById(ctx, vacancyId)
+	if err != nil {
+		return nil, err
+	}
+	vacancy.Responses = count
+
 	if err := db.client.QueryRow(
 		ctx,
 		`SELECT 
@@ -59,24 +65,22 @@ func (db *Db) GetVacancyById(ctx context.Context, id uint) (*model.VacancyGet, e
 			, title
 			, description_offer
 			, salary_cents
-			, responses
 		FROM public.vacancies
 		WHERE id = $1;`,
-		id,
+		vacancyId,
 	).Scan(
 		&vacancy.Id,
 		&vacancy.OwnerEmail,
 		&vacancy.Title,
 		&vacancy.DescriptionOffer,
 		&vacancy.SalaryCents,
-		&vacancy.Responses,
 	); err != nil {
 		return nil, err
 	}
 	return &vacancy, nil
 }
 
-func (db *Db) AddVacancy(ctx context.Context, vacancy *model.VacancyCreate) error {
+func (db *Db) AddVacancy(ctx context.Context, vacancy *model.VacancyCreate, email string) error {
 	_, err := db.client.Exec(
 		ctx,
 		`INSERT INTO public.vacancies 
@@ -85,7 +89,7 @@ func (db *Db) AddVacancy(ctx context.Context, vacancy *model.VacancyCreate) erro
 			, description_offer
 			, salary_cents )
 		VALUES($1, $2, $3, $4);`,
-		vacancy.OwnerEmail,
+		email,
 		vacancy.Title,
 		vacancy.DescriptionOffer,
 		vacancy.SalaryCents,
@@ -93,8 +97,8 @@ func (db *Db) AddVacancy(ctx context.Context, vacancy *model.VacancyCreate) erro
 	return err
 }
 
-func (db *Db) UpdateVacancyById(ctx context.Context, vacancy *model.VacancyUpdate, id uint) error {
-	query, arg, err := buildQuery(vacancy, id)
+func (db *Db) UpdateVacancyByIdAndEmail(ctx context.Context, vacancy *model.VacancyUpdate, vacancyId uint, email string) error {
+	query, arg, err := buildQuery(vacancy, vacancyId, email)
 	if err != nil {
 		return err
 	}
@@ -103,7 +107,7 @@ func (db *Db) UpdateVacancyById(ctx context.Context, vacancy *model.VacancyUpdat
 	return err
 }
 
-func buildQuery(vacancy *model.VacancyUpdate, id uint) (string, []interface{}, error) {
+func buildQuery(vacancy *model.VacancyUpdate, vacancyId uint, email string) (string, []interface{}, error) {
 	var (
 		query = `UPDATE public.vacancies SET `
 		arg   = make([]interface{}, 0)
@@ -134,59 +138,24 @@ func buildQuery(vacancy *model.VacancyUpdate, id uint) (string, []interface{}, e
 	}
 
 	query += strings.Join(parts, ", ")
-	query += fmt.Sprintf(" WHERE id = $%d;", index)
-	arg = append(arg, id)
+	query += fmt.Sprintf(" WHERE id = $%d ", index)
+	index++
+	query += fmt.Sprintf("AND email = $%d;", index)
+	arg = append(arg, vacancyId, email)
 	return query, arg, nil
 }
 
-func (db *Db) AddResponseById(ctx context.Context, id uint, email string) error {
-	tx, err := db.client.Begin(ctx)
-	if err != nil {
-		return err
-	}
-
-	func() {
-		if err != nil {
-			_ = tx.Rollback(ctx)
-		}
-	}()
-
-	if _, err = tx.Exec(
-		ctx,
-		`UPDATE public.vacancies 
-		SET	responses = responses + 1
-		WHERE id = $1;`,
-		id,
-	); err != nil {
-		return err
-	}
-
-	if _, err = tx.Exec(
-		ctx,
-		`INSERT INTO public.responses 
-			( vacancy_id
-			, email )
-		VALUES($1, $2);`,
-		id, email,
-	); err != nil {
-		return err
-	}
-
-	err = tx.Commit(ctx)
-	return err
-}
-
-func (db *Db) CloseVacancyById(ctx context.Context, id uint) error {
+func (db *Db) CloseVacancyByIdAndEmail(ctx context.Context, id uint, email string) error {
 	_, err := db.client.Exec(
 		ctx,
 		`DELETE FROM public.vacancies
-		WHERE id = $1;`,
-		id,
+		WHERE id = $1 AND email = $2;`,
+		id, email,
 	)
 	return err
 }
 
-func (db *Db) GetResponsesByVacancyId(ctx context.Context, id uint) ([]model.ResponseGet, error) {
+func (db *Db) GetResponsesByVacancyId(ctx context.Context, vacancyId uint) ([]model.ResponseGet, error) {
 	row, err := db.client.Query(
 		ctx,
 		`SELECT 
@@ -197,7 +166,7 @@ func (db *Db) GetResponsesByVacancyId(ctx context.Context, id uint) ([]model.Res
 		JOIN public.vacancies AS v 
 		ON r.vacancy_id = v.id
 		WHERE r.vacancy_id = $1;`,
-		id,
+		vacancyId,
 	)
 	if err != nil {
 		return nil, err
@@ -219,4 +188,57 @@ func (db *Db) GetResponsesByVacancyId(ctx context.Context, id uint) ([]model.Res
 	}
 
 	return responses, err
+}
+
+func (db *Db) GetCountResponsesById(ctx context.Context, vacancyId uint) (int, error) {
+	var countResponses int
+
+	err := db.client.QueryRow(
+		ctx,
+		`SELECT COUNT(*) 
+		FROM public.responses
+		WHERE vacancy_id = $1;`,
+		vacancyId,
+	).Scan(&countResponses)
+
+	return countResponses, err
+}
+
+func (db *Db) AddResponseByIdAndEmail(ctx context.Context, vacancyId uint, email string) error {
+	var id uint
+
+	err := db.client.QueryRow(ctx,
+		`SELECT id 
+		FROM public.responses 
+		WHERE vacancy_id = $1 AND email = $2`,
+		vacancyId, email,
+	).Scan(&id)
+	if err == nil {
+		return errors.New("you have already applied")
+	}
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		_, err = db.client.Exec(
+			ctx,
+			`INSERT INTO public.responses 
+			( vacancy_id
+			, email )
+		VALUES($1, $2);`,
+			vacancyId, email,
+		)
+		return err
+	}
+
+	return err
+}
+
+func (db *Db) DeleteResponseByIdAndEmail(ctx context.Context, vacancyId uint, email string) error {
+	_, err := db.client.Exec(
+		ctx,
+		`DELETE 
+		FROM public.responses 
+		WHERE vacancy_id = $1 AND email = $2`,
+		vacancyId, email,
+	)
+	return err
 }

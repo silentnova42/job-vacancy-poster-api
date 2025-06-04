@@ -1,32 +1,62 @@
 package router
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
-	"log"
+	"io"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/silentnova42/job_vacancy_poster/pkg/model"
+	"github.com/silentnova42/job_vacancy_poster/service/auth/pkg/model"
 )
 
 func (h *Handler) Login(ctx *gin.Context) {
-	var customer model.Customer
+	var customer model.Credentials
 	if err := bindAndValidateCustomer(ctx, &customer, h.validate); err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 		return
 	}
 
-	access, err := h.auth.GenerateAccessToken(&customer)
-	log.Println(access)
+	buf, err := json.Marshal(customer)
+	if err != nil {
+		abortWithErr(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	resp, err := http.Post(h.profileService, "application/json", bytes.NewBuffer(buf))
+	if err != nil {
+		abortWithErr(ctx, http.StatusBadRequest, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		abortWithErr(ctx, http.StatusBadRequest, errors.New("profile not found"))
+		return
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		abortWithErr(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	var getCustomer model.GetCustomer
+	if err = json.Unmarshal(data, &getCustomer); err != nil {
+		abortWithErr(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	access, err := h.auth.GenerateAccessToken(&getCustomer)
 	if err != nil {
 		abortWithErr(ctx, http.StatusUnauthorized, err)
 		return
 	}
 
-	refresh, err := h.auth.GenerateRefreshToken(&customer)
-	log.Println(access)
+	refresh, err := h.auth.GenerateRefreshToken(&getCustomer)
 	if err != nil {
 		abortWithErr(ctx, http.StatusUnauthorized, err)
 		return
@@ -60,19 +90,7 @@ func (h *Handler) Refresh(ctx *gin.Context) {
 		return
 	}
 
-	customer, err := h.auth.Refresh(token)
-	if err != nil {
-		abortWithErr(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	access, err := h.auth.GenerateAccessToken(customer)
-	if err != nil {
-		abortWithErr(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	refresh, err := h.auth.GenerateRefreshToken(customer)
+	newRefreshAndAccessTokens, err := h.auth.Refresh(token)
 	if err != nil {
 		abortWithErr(ctx, http.StatusBadRequest, err)
 		return
@@ -80,7 +98,7 @@ func (h *Handler) Refresh(ctx *gin.Context) {
 
 	ctx.SetCookie(
 		"refresh_token",
-		refresh,
+		newRefreshAndAccessTokens.RefreshToken,
 		int(h.expRefresh),
 		"/",
 		"",
@@ -89,30 +107,22 @@ func (h *Handler) Refresh(ctx *gin.Context) {
 	)
 
 	ctx.IndentedJSON(http.StatusOK, gin.H{
-		"access_token:": access,
+		"access_token:": newRefreshAndAccessTokens.AccessToken,
 	})
 }
 
-func (h *Handler) Secure(ctx *gin.Context) {
-	access := ctx.GetHeader("Authorization")
-	if access == "" {
-		abortWithErr(ctx, http.StatusBadRequest, errors.New("incorrect token"))
-		return
-	}
+func (h *Handler) Logout(ctx *gin.Context) {
+	ctx.SetCookie(
+		"refresh_token",
+		"",
+		-1,
+		"/",
+		"",
+		true,
+		true,
+	)
 
-	parts := strings.Split(access, "Bearer")
-	if parts[0] != "" || len(parts) < 2 {
-		abortWithErr(ctx, http.StatusUnauthorized, errors.New("incorrect token"))
-		return
-	}
-
-	customer, err := h.auth.Secure(strings.TrimSpace(parts[1]))
-	if err != nil {
-		abortWithErr(ctx, http.StatusUnauthorized, err)
-		return
-	}
-
-	ctx.IndentedJSON(http.StatusOK, customer)
+	ctx.IndentedJSON(http.StatusOK, "logout success")
 }
 
 func bindAndValidateCustomer(ctx *gin.Context, obj interface{}, v *validator.Validate) error {

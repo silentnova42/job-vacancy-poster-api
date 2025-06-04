@@ -1,13 +1,31 @@
 services:
+  #gatway
+  gatway:
+    build: ./gatway
+    container_name: gatway
+    restart: unless-stopped
+    ports:
+      - ${GATWAY_PORT}:${GATWAY_PORT}
+    environment:
+      - PORT=${GATWAY_PORT}
+    depends_on:
+      - vacancy
+      - profile
+      - authentication
+    networks:
+      - netservices
+
   #vacancy service:
   vacancy:
     build: ./service/vacancy
     container_name: vacancy
     restart: unless-stopped
     ports:
-      - ${VACANCIES_PORT}:${VACANCIES_PORT}
+      - ${VACANCY_PORT}:${VACANCY_PORT}
     environment:
-      - POSTGRES_PASSWORD=${VACANCIES_DB_PASSWORD}
+      - POSTGRES_PASSWORD=${VACANCY_DB_PASSWORD}
+      - PORT=${VACANCY_PORT}
+      - ACCESS_TOKEN=${ACCESS_TOKEN}
     depends_on:
       - vacancy_db
     networks:
@@ -15,10 +33,10 @@ services:
   vacancy_db:
     image: postgres:latest
     container_name: vacancy_db
-    restart: always
+    restart: unless-stopped
     environment:
-      - POSTGRES_PASSWORD=${VACANCIES_DB_PASSWORD}
-      - PORT=${PROFILE_PORT}
+      - POSTGRES_PASSWORD=${VACANCY_DB_PASSWORD}
+      - PORT=${VACANCY_PORT}
     volumes:
       - vacancy:/var/lib/postgresql/data
     networks:
@@ -28,17 +46,19 @@ services:
   profile:
     build: ./service/profile
     container_name: profile
+    restart: unless-stopped
     ports:
       - ${PROFILE_PORT}:${PROFILE_PORT}
     environment:
       - POSTGRES_PSASWORD=${PROFILE_DB_PASSWORD}
       - PORT=${PROFILE_PORT}
+      - ACCESS_TOKEN=${ACCESS_TOKEN}
     networks:
       - netservices
   profile_db:
     image: postgres:latest
     container_name: profile_db
-    restart: always
+    restart: unless-stopped
     environment:
       - POSTGRES_PASSWORD=${PROFILE_DB_PASSWORD}
     volumes:
@@ -50,13 +70,14 @@ services:
   authentication:
     build: ./service/authentication
     container_name: authentication
-    restart: always
+    restart: unless-stopped
     ports:
       - ${AUTHENTICATION_PORT}:${AUTHENTICATION_PORT}
     environment:
-      - PORT=${AUTHENTICATION_PORT}
       - REFRESH_TOKEN=${REFRESH_TOKEN}
       - ACCESS_TOKEN=${ACCESS_TOKEN}
+      - PORT=${AUTHENTICATION_PORT}
+      - PROFILE_URL=${PROFILE_URL}
     networks:
       - netservices
 

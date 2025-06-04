@@ -4,9 +4,9 @@ import (
 	"log"
 	"os"
 
-	router "github.com/silentnova42/job_vacancy_poster/pkg/api"
-	auth "github.com/silentnova42/job_vacancy_poster/pkg/jwt"
-	"github.com/silentnova42/job_vacancy_poster/pkg/server"
+	router "github.com/silentnova42/job_vacancy_poster/service/auth/pkg/api"
+	"github.com/silentnova42/job_vacancy_poster/service/auth/pkg/auth"
+	"github.com/silentnova42/job_vacancy_poster/service/auth/pkg/server"
 )
 
 func main() {
@@ -17,7 +17,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	handler, err := router.NewHandler(authService, auth.ExpForRefresh)
+	urlProfile := os.Getenv("PROFILE_URL")
+
+	handler, err := router.NewHandler(authService, auth.ExpForRefresh, urlProfile)
 	if err != nil {
 		log.Fatal(err)
 	}

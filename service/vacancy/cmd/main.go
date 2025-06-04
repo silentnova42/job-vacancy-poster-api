@@ -5,9 +5,9 @@ import (
 	"log"
 	"os"
 
-	pgstorage "github.com/silentnova42/job_vacancy_poster/db/pg-storage"
-	router "github.com/silentnova42/job_vacancy_poster/pkg/api"
-	"github.com/silentnova42/job_vacancy_poster/pkg/server"
+	pgstorage "github.com/silentnova42/job_vacancy_poster/service/vacancy/db/pg-storage"
+	router "github.com/silentnova42/job_vacancy_poster/service/vacancy/pkg/api"
+	"github.com/silentnova42/job_vacancy_poster/service/vacancy/pkg/server"
 	"github.com/spf13/viper"
 )
 
@@ -43,7 +43,7 @@ func main() {
 	server := server.NewServer()
 	handler := router.NewHandler(db)
 
-	if err = server.Run(":"+viper.GetString("port"), handler.InitRouter()); err != nil {
+	if err = server.Run(":"+os.Getenv("PORT"), handler.InitRouter()); err != nil {
 		log.Fatal(err)
 	}
 }

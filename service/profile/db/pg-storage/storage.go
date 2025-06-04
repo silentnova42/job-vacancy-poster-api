@@ -4,14 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
-	"github.com/silentnova42/job_vacancy_poster/pkg/model"
+	"github.com/silentnova42/job_vacancy_poster/service/profile/pkg/model"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (db *Db) GetProfileByEmailAndPassword(ctx context.Context, credentials model.Credentials) (*model.GetPrivateCustomer, error) {
+func (db *Db) GetCustomerByEmailAndPassword(ctx context.Context, loginRequest *model.LoginRequest) (*model.GetPrivateCustomer, error) {
 	var (
 		customer model.GetPrivateCustomer
 		err      error
@@ -28,7 +27,7 @@ func (db *Db) GetProfileByEmailAndPassword(ctx context.Context, credentials mode
 			, password
 		FROM public.profiles
 		WHERE email=$1`,
-		credentials.Email,
+		loginRequest.Email,
 	).Scan(
 		&customer.Id,
 		&customer.Email,
@@ -40,7 +39,7 @@ func (db *Db) GetProfileByEmailAndPassword(ctx context.Context, credentials mode
 		return nil, err
 	}
 
-	if err = comperePasswordHash([]byte(customer.Password), []byte(credentials.Password)); err != nil {
+	if err = comperePasswordHash([]byte(customer.Password), []byte(loginRequest.Password)); err != nil {
 		return nil, err
 	}
 
@@ -74,7 +73,7 @@ func (db *Db) GetCustomerByEmail(ctx context.Context, email string) (*model.GetP
 	return &customer, nil
 }
 
-func (db *Db) AddProfile(ctx context.Context, newCustomer model.CreateCustomer) error {
+func (db *Db) AddCustomer(ctx context.Context, newCustomer *model.CreateCustomer) error {
 	hash, err := getPasswordHash(newCustomer.Password)
 	if err != nil {
 		return err
@@ -82,7 +81,7 @@ func (db *Db) AddProfile(ctx context.Context, newCustomer model.CreateCustomer) 
 
 	_, err = db.client.Exec(
 		ctx,
-		`INSERT INTO public.profiles 
+		`INSERT INTO public.profiles
 			( email
 			, name
 			, last_name
@@ -98,13 +97,13 @@ func (db *Db) AddProfile(ctx context.Context, newCustomer model.CreateCustomer) 
 	return err
 }
 
-func (db *Db) UpdateProfile(ctx context.Context, updateCustomer model.UpdateCustomer) error {
-	getCustomer, err := db.GetProfileByEmailAndPassword(ctx, updateCustomer.Credentials)
+func (db *Db) UpdateCustomer(ctx context.Context, updateCustomer *model.UpdateCustomer, email string) error {
+	customer, err := db.GetCustomerByEmail(ctx, email)
 	if err != nil {
 		return err
 	}
 
-	query, args, err := buildQuery(updateCustomer, *getCustomer)
+	query, args, err := buildQuery(updateCustomer, customer)
 	if err != nil {
 		return err
 	}
@@ -113,7 +112,7 @@ func (db *Db) UpdateProfile(ctx context.Context, updateCustomer model.UpdateCust
 	return err
 }
 
-func buildQuery(updateCustomer model.UpdateCustomer, getCustomer model.GetPrivateCustomer) (string, []interface{}, error) {
+func buildQuery(updateCustomer *model.UpdateCustomer, customer *model.GetPublicCustomer) (string, []interface{}, error) {
 	var (
 		query = "UPDATE public.profiles SET "
 		parts = make([]string, 0)
@@ -121,46 +120,21 @@ func buildQuery(updateCustomer model.UpdateCustomer, getCustomer model.GetPrivat
 		index = 1
 	)
 
-	if err := comperePasswordHash([]byte(getCustomer.Password), []byte(updateCustomer.Credentials.Password)); err != nil {
-		return "", nil, err
-	}
-
-	if updateCustomer.Email != nil && *updateCustomer.Email != getCustomer.Email {
-		parts = append(parts, fmt.Sprintf("email = $%v", index))
-		args = append(args, updateCustomer.Email)
-		index++
-	}
-
-	if updateCustomer.Name != nil && *updateCustomer.Name != getCustomer.Name {
+	if updateCustomer.NewName != nil && *updateCustomer.NewName != customer.Name {
 		parts = append(parts, fmt.Sprintf("name = $%v", index))
-		args = append(args, updateCustomer.Name)
+		args = append(args, updateCustomer.NewName)
 		index++
 	}
 
-	if updateCustomer.LastName != nil && *updateCustomer.LastName != getCustomer.LastName {
+	if updateCustomer.NewLastName != nil && *updateCustomer.NewLastName != customer.LastName {
 		parts = append(parts, fmt.Sprintf("last_name = $%v", index))
-		args = append(args, updateCustomer.LastName)
+		args = append(args, updateCustomer.NewLastName)
 		index++
 	}
 
-	if updateCustomer.Resume != nil && *updateCustomer.Resume != getCustomer.Resume {
+	if updateCustomer.NewResume != nil && *updateCustomer.NewResume != customer.Resume {
 		parts = append(parts, fmt.Sprintf("resume = $%v", index))
-		args = append(args, updateCustomer.Resume)
-		index++
-	}
-
-	log.Println(*updateCustomer.Password)
-	log.Println(getCustomer.Password)
-
-	if updateCustomer.Password != nil && *updateCustomer.Password != updateCustomer.Credentials.Password {
-		parts = append(parts, fmt.Sprintf("password = $%v", index))
-
-		hash, err := getPasswordHash(*updateCustomer.Password)
-		if err != nil {
-			return "", nil, err
-		}
-
-		args = append(args, hash)
+		args = append(args, updateCustomer.NewResume)
 		index++
 	}
 
@@ -169,10 +143,12 @@ func buildQuery(updateCustomer model.UpdateCustomer, getCustomer model.GetPrivat
 	}
 
 	query += strings.Join(parts, ", ")
+	query += fmt.Sprintf(" WHERE email = $%d;", index)
+	args = append(args, customer.Email)
 	return query, args, nil
 }
 
-func (db *Db) DeleteProfileByEmailAndPassword(ctx context.Context, credentials model.Credentials) error {
+func (db *Db) UpdatePassword(ctx context.Context, passwordUpdate *model.PasswordUpdateRequest, email string) error {
 	var (
 		passwordHash string
 		err          error
@@ -181,10 +157,54 @@ func (db *Db) DeleteProfileByEmailAndPassword(ctx context.Context, credentials m
 	if err = db.client.QueryRow(
 		ctx,
 		`
-		SELECT password FROM public.profiles
-		WHERE email = $1
+		SELECT password 
+		FROM public.profiles
+		WHERE email = $1;
 		`,
-		credentials.Email,
+		email,
+	).Scan(&passwordHash); err != nil {
+		return err
+	}
+
+	if err = comperePasswordHash([]byte(passwordHash), []byte(passwordUpdate.OldPassword)); err != nil {
+		return err
+	}
+
+	newPasswordHash, err := getPasswordHash(passwordUpdate.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	if _, err = db.client.Exec(
+		ctx,
+		`
+		UPDATE public.profiles 
+		SET password = $1 
+		WHERE email = $2;
+		`,
+		newPasswordHash,
+		email,
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Db) DeleteCustomerByEmailAndPassword(ctx context.Context, credentials *model.PasswordPayload, email string) error {
+	var (
+		passwordHash string
+		err          error
+	)
+
+	if err = db.client.QueryRow(
+		ctx,
+		`
+		SELECT password 
+		FROM public.profiles
+		WHERE email = $1;
+		`,
+		email,
 	).Scan(&passwordHash); err != nil {
 		return err
 	}
@@ -197,7 +217,7 @@ func (db *Db) DeleteProfileByEmailAndPassword(ctx context.Context, credentials m
 		ctx,
 		`DELETE FROM public.profiles
 		WHERE email = $1 AND password = $2`,
-		credentials.Email, passwordHash,
+		email, passwordHash,
 	)
 
 	return err

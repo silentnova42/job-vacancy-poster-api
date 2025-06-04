@@ -5,37 +5,36 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/silentnova42/job_vacancy_poster/pkg/model"
+	"github.com/silentnova42/job_vacancy_poster/service/profile/pkg/model"
 )
 
 type CustomerProfileStorage interface {
-	GetProfileByEmailAndPassword(ctx context.Context, checkCustomer model.Credentials) (*model.GetPrivateCustomer, error)
+	GetCustomerByEmailAndPassword(ctx context.Context, credentials *model.LoginRequest) (*model.GetPrivateCustomer, error)
 	GetCustomerByEmail(ctx context.Context, email string) (*model.GetPublicCustomer, error)
-	AddProfile(ctx context.Context, customer model.CreateCustomer) error
-	UpdateProfile(ctx context.Context, updateCustomer model.UpdateCustomer) error
-	DeleteProfileByEmailAndPassword(ctx context.Context, check model.Credentials) error
+	AddCustomer(ctx context.Context, newCustomer *model.CreateCustomer) error
+	UpdateCustomer(ctx context.Context, updateCustomer *model.UpdateCustomer, email string) error
+	UpdatePassword(ctx context.Context, passwordUpdate *model.PasswordUpdateRequest, email string) error
+	DeleteCustomerByEmailAndPassword(ctx context.Context, credentials *model.PasswordPayload, email string) error
 }
 
 type Handler struct {
-	client   CustomerProfileStorage
+	dbClient CustomerProfileStorage
 	validate *validator.Validate
 }
 
 func NewHandler(db CustomerProfileStorage) *Handler {
-	return &Handler{client: db, validate: validator.New()}
+	return &Handler{dbClient: db, validate: validator.New()}
 }
 
 func (h *Handler) InitRouter() *gin.Engine {
 	r := gin.Default()
 
-	profiles := r.Group("/profiles")
-	{
-		profiles.GET("/", h.GetProfileByEmailAndPassword)
-		profiles.GET("/:email", h.GetProfileByEmail)
-		profiles.POST("/", h.AddProfile)
-		profiles.PATCH("/", h.UpdateProfile)
-		profiles.DELETE("/", h.DeleteProfileByEmailAndPassword)
-	}
+	r.GET("/:email", h.GetProfileByEmail)
+	r.POST("/", h.GetProfileByEmailAndPassword)
+	r.POST("/reg/", h.AddProfile)
+	r.PATCH("/", h.UpdateProfile)
+	r.PATCH("/password", h.UpdatePassword)
+	r.DELETE("/", h.DeleteProfileByEmailAndPassword)
 
 	return r
 }

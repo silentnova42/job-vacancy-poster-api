@@ -1,0 +1,4 @@
+service:
+  vacancy: "http://vacancy:8081"
+  profile: "http://profile:8082"
+  auth: "http://authentication:8083"

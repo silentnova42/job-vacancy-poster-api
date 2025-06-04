@@ -5,9 +5,9 @@ import (
 	"log"
 	"os"
 
-	pgstorage "github.com/silentnova42/job_vacancy_poster/db/pg-storage"
-	router "github.com/silentnova42/job_vacancy_poster/pkg/api"
-	"github.com/silentnova42/job_vacancy_poster/pkg/server"
+	pgstorage "github.com/silentnova42/job_vacancy_poster/service/profile/db/pg-storage"
+	router "github.com/silentnova42/job_vacancy_poster/service/profile/pkg/api"
+	"github.com/silentnova42/job_vacancy_poster/service/profile/pkg/server"
 	"github.com/spf13/viper"
 )
 
